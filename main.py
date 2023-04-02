@@ -1,49 +1,29 @@
 import asyncio
 import logging
-from os import getenv, fork
+import os
+import argparse
+import time
 from pprint import pprint
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
-import argparse
+import Daemon from demon
 
 
 load_dotenv()
-TOKEN = getenv('TELEGRAM_TOKEN')
+TOKEN = os.getenv('TELEGRAM_TOKEN')
 
 
 help_log = 'without the -l option write to telegram.log otherwise print to file'
 parser = argparse.ArgumentParser()
-parser.add_argument('-t', '--test', action='store_true')
+parser.add_argument('-t', '--dry-run', action='store_true')
 parser.add_argument('-l', '--log', action='store', default='telegram.log', const='', nargs='?', help=help_log)
+parser.add_argument('-tl', '--time-live', action='store', default=None, help='Time to live the process')
 args = parser.parse_args()
 
 
 FORMAT = '%(asctime)s::%(levelname)s::%(message)s'
 logging.basicConfig(filename=args.log, format=FORMAT, level=logging.INFO)
-
-
-class daemon():
-
-    def __init__(self,):
-        pass
-
-
-def demonification(fn):
-    def wrapper(*args):
-        pid = fork()
-
-        if not pid:
-            logging.info(f'Pid is {pid}')
-            logging.info('Start daemon!')
-            fn()
-        else:
-            exit(0)
-    return wrapper
-
-
-
-
 
 
 
@@ -57,7 +37,6 @@ async def echofn(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                       message_id=update.message.message_id)
 
 
-@demonification
 def main() -> None:
     application = ApplicationBuilder().token(TOKEN).build()
     # start_handler = CommandHandler('start', startfn)
@@ -66,5 +45,16 @@ def main() -> None:
     application.run_polling()
 
 
+def testfn():
+    while 1:
+        logging.info('Hello Demon!')
+        time.sleep(3)
+
+
+
+
 if __name__ == '__main__':
-    main()
+    # main()
+    d = Daemon(testfn)
+    d.start()
+    d.kill(15)
