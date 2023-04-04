@@ -3,13 +3,14 @@ import time
 import sys
 import argparse
 import atexit
+import signal
 
 
 class Daemon():
     """Class for Creating and maintaining Demon process"""
 
-    def __init__(self, pidfile):
-        self.pidfile = f'/var/lock/{pidfile}d'
+    def __init__(self, filename):
+        self.pidfile = f'/var/lock/{filename}d'
         self.stdin = '/dev/null'
         self.stdout = '/dev/null'
         self.stderr = '/dev/null'
@@ -25,6 +26,7 @@ class Daemon():
         pid = str(os.getpid())
         open(self.pidfile, 'w').write(pid)
         atexit.register(self.delpid)
+        signal.signal(signal.SIGCHLD, handle_signal)
 
         sys.stdout.flush()
         sys.stderr.flush()
@@ -41,7 +43,11 @@ class Daemon():
 
     def delpid(self):
         """Only remove pidfile"""
-        os.remove(self.pidfile)
+        try:
+            os.remove(self.pidfile)
+        except FileNotFoundError as e:
+            sys.stderr.write(f'{e}\n')
+
 
 
     @staticmethod
@@ -70,7 +76,6 @@ class Daemon():
     def stop(self):
         """Stop the existing daemon"""
 
-        atexit.register(self.delpid)
         if os.path.exists(self.pidfile):
             try:
                 pid = int(open(self.pidfile).read())
@@ -85,12 +90,21 @@ class Daemon():
         try:
             os.kill(pid, 15)
             sys.stdout.write(f'Daemon with pid {pid} was terminated!\n')
+            self.delpid()
         except OSError as e:
             os.kill(pid, 9)
             sys.stderr.write(f'Error {pid}\n')
             sys.stderr.write(f'Send kill -9 to process {pid}\n')
             sys.exit(1)
+        finally:
+            if os.path.exists(f'/proc/{pid}'):
+                os.kill(pid, 9)
+                sys.stderr.write(f'Send kill -9 to process {pid}\n')
 
+
+    @staticmethod
+    def handle_signal(signum, frame):
+        pass
 
 
 if __name__ == '__main__':
@@ -102,7 +116,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=RAWHELP, formatter_class=argparse.RawDescriptionHelpFormatter)
     exgroup = parser.add_mutually_exclusive_group(required=True)
     exgroup.add_argument('-d', '--daemonize', action='store_true', help='Demonize a function')
-    exgroup.add_argument('-k', '--kill', action='store', const='testd', nargs='?', help='Specify a process name...')
+    exgroup.add_argument('-k', '--kill', action='store', const='test', nargs='?', help='Specify a process name...')
     args = parser.parse_args()
 
 
@@ -111,12 +125,17 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format=FORMAT, filename='testd.log')
 
 
+    def handle_signal(signum, frame):
+        logging.info(f'Signal {signum} is handling!')
+
+
     def testd():
         while True:
             logging.info('Daemon is running!')
             time.sleep(5)
 
 
+    signal.signal(15, handle_signal)
     if args.daemonize:
         Daemon('test').start(testd)
     else:
