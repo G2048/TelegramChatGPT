@@ -4,6 +4,7 @@ import sys
 import argparse
 import atexit
 import signal
+import logging
 
 
 class Daemon():
@@ -24,9 +25,11 @@ class Daemon():
         os.umask(0)
         self.create_child()
         pid = str(os.getpid())
+        logging.info(f'Demon was created! Pid is: {pid}')
         open(self.pidfile, 'w').write(pid)
+        logging.debug(f'{self.pidfile}')
         atexit.register(self.delpid)
-        signal.signal(signal.SIGCHLD, handle_signal)
+        signal.signal(signal.SIGCHLD, self.handle_signal)
 
         sys.stdout.flush()
         sys.stderr.flush()
@@ -38,7 +41,8 @@ class Daemon():
         os.dup2(so.fileno(), sys.stdout.fileno())
         os.dup2(se.fileno(), sys.stderr.fileno())
 
-        self.fn()
+        logging.debug(f'Start function {self.fn}')
+        self.fn(*self.fn_args)
 
 
     def delpid(self):
@@ -46,8 +50,14 @@ class Daemon():
         try:
             os.remove(self.pidfile)
         except FileNotFoundError as e:
+            logging.error(e)
             sys.stderr.write(f'{e}\n')
 
+
+
+    @staticmethod
+    def handle_signal(signum, frame):
+        pass
 
 
     @staticmethod
@@ -57,19 +67,24 @@ class Daemon():
             if pid:
                 sys.exit(0)
         except OSError as e:
+            logging.error('Create daemon is failed!')
+            logging.error(f'Error: {e.errno} {e.strerror}')
             sys.stderr.write('Create daemon is failed!\n')
             sys.stderr.write(f'Error: {e.errno} {e.strerror}\n')
             sys.exit(1)
 
 
-    def start(self, fn):
+    def start(self, fn, *args):
         """You must specify a function to be called when the daemon is started"""
 
         self.fn = fn
+        self.fn_args = args
         if os.path.exists(self.pidfile):
+            logging.warning(f'{self.pidfile} already exists. Daemon is already running!')
             sys.stderr.write(f'{self.pidfile} already exists. Daemon is already running!\n')
             self.stop()
         else:
+            logging.debug(self.fn_args)
             self.demonification()
 
 
@@ -80,31 +95,32 @@ class Daemon():
             try:
                 pid = int(open(self.pidfile).read())
             except OSError as e:
+                logging.error(f'Error: {e}')
                 sys.stderr.write(f'Error: {e}\n')
                 sys.exit(1)
         else:
+            logging.warning('Pid file don\'t exist!')
             sys.stderr.write('Pid file don\'t exist!\n')
-            sys.exit(1)
+            return -1
 
 
         try:
             os.kill(pid, 15)
+            logging.warning(f'Daemon with pid {pid} was terminated!')
             sys.stdout.write(f'Daemon with pid {pid} was terminated!\n')
             self.delpid()
         except OSError as e:
             os.kill(pid, 9)
+            logging.warning(f'Send kill -9 to process {pid}')
             sys.stderr.write(f'Error {pid}\n')
             sys.stderr.write(f'Send kill -9 to process {pid}\n')
             sys.exit(1)
         finally:
             if os.path.exists(f'/proc/{pid}'):
                 os.kill(pid, 9)
+                logging.warning(f'Send kill -9 to process {pid}')
                 sys.stderr.write(f'Send kill -9 to process {pid}\n')
 
-
-    @staticmethod
-    def handle_signal(signum, frame):
-        pass
 
 
 if __name__ == '__main__':
@@ -120,7 +136,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
 
-    import logging
     FORMAT = '%(asctime)s::%(name)s::%(levelname)s::%(message)s'
     logging.basicConfig(level=logging.INFO, format=FORMAT, filename='testd.log')
 
