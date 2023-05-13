@@ -45,10 +45,13 @@ class Models:
 
 class Create_Responce:
 
+    VAULT = []
+
     def __init__(self, role):
         load_dotenv()
         openai.api_key = os.getenv('OPENAI_TOKEN')
         self.__create_role(role)
+        self.VAULT.append(self.message_role)
 
     def __create_role(self, role):
         self.message_role = {'role': 'system', 'content': role}
@@ -67,17 +70,33 @@ class Create_Responce:
         self.question = question
 
     def create_message(self):
-        self.user_message = [self.message_role, {'role': 'user', 'content': self.question}]
+        self.VAULT.append({'role': 'user', 'content': self.question})
+        logging.debug(self.VAULT)
+        self.user_message = self.VAULT
+
+    def safe_dialog(self, answer):
+        if len(self.VAULT) >= 250:
+            del self.VAULT[0]
+
+        self.VAULT.append({'role': 'system', 'content': answer})
 
     def ask(self):
         try:
-            answer = openai.ChatCompletion.create(model='gpt-3.5-turbo', messages=self.user_message)
-            # pprint(answer, width=1)
+            answer = openai.ChatCompletion.create(model='gpt-3.5-turbo', messages=self.user_message, temperature=0)
             logging.debug(answer)
             return answer
         except Exception as e:
             logging.error(str(e)[:100])
             sys.exit(1)
+
+    def print_dialog(self):
+        for dialog in self.VAULT:
+            if dialog['role'] == 'system':
+                speaker = 'ChatGPT'
+            else:
+                speaker = 'You'
+            print()
+            print(f'{speaker}: {dialog["content"]}')
 
 
 
@@ -136,8 +155,8 @@ class ChatParser:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-t', '--dry-run', action='store_true')
-    parser.add_argument('-v', '--verbose', action='count', default=2)
+    parser.add_argument('-t', '--dry-run', action='store_true', help='???')
+    parser.add_argument('-v', '--verbose', action='count', default=2, help='Log level verbosity')
     args = parser.parse_args()
 
 
@@ -146,20 +165,26 @@ if __name__ == '__main__':
     logging.basicConfig(filename='', format=FORMAT, level=log_level)
 
 
-    role = Roles().ChatGPT
+    # role = Roles().ChatGPT
+    role = Roles().ASSISTANT
     to_ai = Create_Responce(role)
 
     while True:
         try:
             user_message = input('>>> ')
-            to_ai.message = user_message
-            to_ai.create_message()
-            answer = to_ai.ask()
-    # answer = test_ai()
-            parser = ChatParser(answer)
-            print()
-            # print(type(parser.message()))
-            print(parser.message())
-            print()
+            if user_message in ['print dialog', 'history']:
+                to_ai.print_dialog()
+            else:
+                to_ai.message = user_message
+                to_ai.create_message()
+                request = to_ai.ask()
+
+                parser = ChatParser(request)
+                answer = parser.message()
+                to_ai.safe_dialog(answer)
+
+                print()
+                print(answer)
+                print()
         except KeyboardInterrupt:
             sys.exit()
