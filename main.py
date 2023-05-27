@@ -44,7 +44,6 @@ FORMAT = '%(asctime)s::%(levelname)s::%(message)s'
 logging.basicConfig(filename=args.log, format=FORMAT, level=args.log_level)
 logger = logging.getLogger(__name__)
 
-STOP ='0'
 CHAT ='1'
 START ='2'
 CALL_START ='3'
@@ -98,12 +97,11 @@ async def conversation_keyboard(update: Update, context: ContextTypes.DEFAULT_TY
         'Conversation keyboard',
         reply_markup=keyboard_markup
     )
-    return MIDDLE
 
 
 async def start_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """It's start menu for choise of dialogue and starting of conversation"""
-    keyboard = [['START'], ['Get the list of Dialoge']]
+    keyboard = [['START'], ['Get the list of Dialogues']]
 
     keyboard_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
     await update.message.delete()
@@ -148,6 +146,7 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def middle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Get, handle and route from start menu"""
     message = update.message.text
+    logging.info(f'Midlle: {message}')
 
     if message == 'START':
         keyboard = [['STOP'], ['Change the Dialoge']]
@@ -156,13 +155,26 @@ async def middle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
         await update.message.reply_text('Start conversation with ChatGPT!', reply_markup=keyboard_markup)
 
-        # await update.message.delete()
         await update.message.reply_text(GREETINGS)
         return CHAT
 
-    elif message == 'Change the Dialoge':
+    if message == 'Get the list of Dialogues':
         # Here will be placed a keyboard
-        return MENU
+        logging.info('Get choose of dialoge')
+        # return MENU
+
+
+async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Choose the dialog"""
+    # Must need to make pagination
+    forward_button = InlineKeyboardButton('Forward -->', callback_data='start')
+    back_button = InlineKeyboardButton('<--- Backward', callback_data='start')
+    choose_button = InlineKeyboardButton('Choose', callback_data='/start')
+    hide_button = InlineKeyboardButton('Hide', callback_data='/start')
+    keyboard = [[hide_button, choose_button], [back_button, forward_button]]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(text='Get data From DataBase', reply_markup=reply_markup)
 
 
 def main() -> None:
@@ -171,7 +183,8 @@ def main() -> None:
     tip_handler = CommandHandler('help', tip)
     start_handler = CommandHandler('start', start_keyboard)
     # keyboard_handler = MessageHandler(filters.Regex('^(START|Change the Dialoge)$') & ~(filters.COMMAND | filters.Regex('^STOP$')), conversation_keyboard)
-    middle_handler = MessageHandler(filters.Regex('^(START|Change the Dialoge)$') & ~(filters.COMMAND | filters.Regex('^STOP$')), middle)
+    middle_handler = MessageHandler(~(filters.COMMAND | filters.Regex('^STOP$') | filters.Regex('^Get the list of Dialogues$')), middle)
+    menu_handler = MessageHandler(filters.Regex('^Get the list of Dialogues$') & ~(filters.COMMAND | filters.Regex('^STOP$')), menu)
     # call_start = CallbackQueryHandler(start_conversation, pattern="^" + str('START') + "$")
     stop_handler = CommandHandler('stop', stop)
     # forward_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), proxy_message)
@@ -187,6 +200,7 @@ def main() -> None:
 
             MIDDLE: [
                 middle_handler,
+                menu_handler,
             ],
 
             # CALL_START: [
@@ -198,7 +212,7 @@ def main() -> None:
             ],
 
             MENU: [
-
+                menu_handler,
             ],
         },
 
