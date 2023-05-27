@@ -44,10 +44,12 @@ FORMAT = '%(asctime)s::%(levelname)s::%(message)s'
 logging.basicConfig(filename=args.log, format=FORMAT, level=args.log_level)
 logger = logging.getLogger(__name__)
 
-STOP ='0' 
-CHAT ='1' 
-START ='2' 
-CALL_START ='3' 
+STOP ='0'
+CHAT ='1'
+START ='2'
+CALL_START ='3'
+MIDDLE ='4'
+MENU ='5'
 GREETINGS = """Hello! I am an AI language model designed to assist and communicate with users. I am programmed to understand and respond to natural language queries and provide helpful responses. My purpose is to make tasks easier and more efficient for users."""
 
 
@@ -71,23 +73,24 @@ async def tip(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Initializing conversation with ChatGPT"""
-    keyboard = [['START'], ['STOP']]
-
-    await update.message.reply_text(
-        'Conversation with ChatGPT is starting...',)
-        reply_markup=ReplyKeyboardMarkup(
-            keyboard,
-            # one_time_keyboard=True,
-            resize_keyboard=True,
-            input_field_placeholder='Choose'
-        ),
-    )
-    await update.message.delete()
-    return CHAT
+    await update.message.reply_text('Initialization')
+    # keyboard = [['START']]
+    #
+    # await update.message.reply_text(
+    #     'Conversation with ChatGPT is starting...',
+    #     reply_markup=ReplyKeyboardMarkup(
+    #         keyboard,
+    #          one_time_keyboard=True,
+    #         resize_keyboard=True,
+    #         input_field_placeholder='Choose'
+    #     ),
+    # )
+    # await update.message.delete()
+    return MIDDLE
 
 
 # Stop Sending messages to GPT and clear the VAULT of messages
-async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def stop2(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Stop the conversation with ChatGPT"""
     ask_to_ai.VAULT = []
     keyboard = [['/start']]
@@ -102,6 +105,31 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.delete()
     return START
+
+
+async def middle_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [['STOP'], ['Change the Dialoge']]
+
+    keyboard_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
+    await update.message.delete()
+    await update.message.reply_text(
+        'Menu of choise',
+        reply_markup=keyboard_markup
+    )
+    return MIDDLE
+
+
+async def start_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [['START'], ['Get the list of Dialoge']]
+
+    keyboard_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
+    await update.message.delete()
+    await update.message.reply_text(
+        'Menu of choise',
+        reply_markup=keyboard_markup
+    )
+    return MIDDLE
+    # return START
 
 
 
@@ -125,35 +153,67 @@ async def proxy_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.info(f'{update.message}')
         logging.info(f'{answer}')
         await update.message.reply_markdown_v2(answer)
-    elif message == '':
-        return STOP
+    # elif message == '':
+        # return STOP
 
 
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message.text
-    logging.info(f'Start echo function. Message: {message}')
     await update.message.reply_text(message)
+    logging.info(f'Start echo function. Message: {message}')
+
+
+
+async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.delete()
+    await update.message.reply_text('Bye!', reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
+
+
+async def middle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Get, handle and route"""
+    message = update.message.text
+
+    if message == 'START':
+        keyboard = [['STOP'], ['Change the Dialoge']]
+
+        # Get the keyboard for dialogue
+        keyboard_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
+        await update.message.reply_text('Start conversation with ChatGPT!', reply_markup=keyboard_markup)
+
+        # await update.message.delete()
+        await update.message.reply_text(GREETINGS)
+        return CHAT
+
+    elif message == 'Change the Dialoge':
+        # Here will be placed a keyboard
+        return MENU
 
 
 def main() -> None:
     application = ApplicationBuilder().token(TOKEN).build()
 
     tip_handler = CommandHandler('help', tip)
-    start_handler = CommandHandler('start', start_conversation)
+    start_handler = CommandHandler('start', start_keyboard)
+    keyboard_handler = MessageHandler(filters.Regex('^(START|Change the Dialoge)$') & ~(filters.COMMAND | filters.Regex('^STOP$')), middle_keyboard)
+    middle_handler = MessageHandler(filters.Regex('^(START|Change the Dialoge)$') & ~(filters.COMMAND | filters.Regex('^STOP$')), middle)
     # call_start = CallbackQueryHandler(start_conversation, pattern="^" + str('START') + "$")
     stop_handler = CommandHandler('stop', stop)
     # forward_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), proxy_message)
-    forward_handler = MessageHandler(filters.TEXT & ~(filters.COMMAND | filters.Regex('^START$')), echo)
+    forward_handler = MessageHandler(filters.TEXT & ~(filters.COMMAND | filters.Regex('^STOP$')), echo)
+    stop_handler = MessageHandler(filters.Regex('^STOP$'), stop)
 
     conv_handler = ConversationHandler(
-        entry_points=[start_handler, call_start],
+        entry_points=[start_handler,],
         states = {
 
             START: [
-                # call_start,
-                start_handler,
-                # stop_handler,
+            ],
+
+            MIDDLE: [
+                middle_handler,
+                keyboard_handler,
             ],
 
             # CALL_START: [
@@ -164,19 +224,18 @@ def main() -> None:
                 forward_handler,
             ],
 
-            STOP: [
+            MENU: [
 
             ],
         },
 
-        fallbacks=[
-            stop_handler, 
-            start_handler,
-            # call_start,
+        fallbacks=[ 
+            stop_handler,
         ],
     )
     logging.info(f'Current state: {START} and {CHAT}')
 
+    # application.add_handler(stop_handler)
     application.add_handler(tip_handler)
     application.add_handler(conv_handler)
     application.run_polling()
