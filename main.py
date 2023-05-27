@@ -71,24 +71,6 @@ async def tip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return START
 
 
-async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Initializing conversation with ChatGPT"""
-    await update.message.reply_text('Initialization')
-    # keyboard = [['START']]
-    #
-    # await update.message.reply_text(
-    #     'Conversation with ChatGPT is starting...',
-    #     reply_markup=ReplyKeyboardMarkup(
-    #         keyboard,
-    #          one_time_keyboard=True,
-    #         resize_keyboard=True,
-    #         input_field_placeholder='Choose'
-    #     ),
-    # )
-    # await update.message.delete()
-    return MIDDLE
-
-
 # Stop Sending messages to GPT and clear the VAULT of messages
 async def stop2(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Stop the conversation with ChatGPT"""
@@ -107,19 +89,20 @@ async def stop2(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return START
 
 
-async def middle_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def conversation_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [['STOP'], ['Change the Dialoge']]
 
     keyboard_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
     await update.message.delete()
     await update.message.reply_text(
-        'Menu of choise',
+        'Conversation keyboard',
         reply_markup=keyboard_markup
     )
     return MIDDLE
 
 
 async def start_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """It's start menu for choise of dialogue and starting of conversation"""
     keyboard = [['START'], ['Get the list of Dialoge']]
 
     keyboard_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
@@ -129,40 +112,31 @@ async def start_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=keyboard_markup
     )
     return MIDDLE
-    # return START
-
 
 
 async def proxy_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message.text
     logging.info(f'Start echo function. Message: {message}')
 
-    if message == 'START':
-        await update.message.reply_text(GREETINGS)
-    elif message:
-        ask_to_ai.message = f'{update.message.text}'
-        ask_to_ai.create_message()
-        request = ask_to_ai.ask()
-        logging.debug(f'Requets to ChatGPT: {request}')
+    ask_to_ai.message = f'{update.message.text}'
+    ask_to_ai.create_message()
+    request = ask_to_ai.ask()
+    logging.debug(f'Requets to ChatGPT: {request}')
 
-        parser = ChatParser(request)
-        answer = parser.message()
-        ask_to_ai.safe_dialog(answer)
+    parser = ChatParser(request)
+    answer = parser.message()
+    ask_to_ai.safe_dialog(answer)
 
 
-        logging.info(f'{update.message}')
-        logging.info(f'{answer}')
-        await update.message.reply_markdown_v2(answer)
-    # elif message == '':
-        # return STOP
-
+    logging.info(f'{update.message}')
+    logging.info(f'{answer}')
+    await update.message.reply_markdown_v2(answer)
 
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message.text
     await update.message.reply_text(message)
     logging.info(f'Start echo function. Message: {message}')
-
 
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -172,13 +146,13 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def middle(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Get, handle and route"""
+    """Get, handle and route from start menu"""
     message = update.message.text
 
     if message == 'START':
         keyboard = [['STOP'], ['Change the Dialoge']]
 
-        # Get the keyboard for dialogue
+        # Get the keyboard along to conversation
         keyboard_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
         await update.message.reply_text('Start conversation with ChatGPT!', reply_markup=keyboard_markup)
 
@@ -196,7 +170,7 @@ def main() -> None:
 
     tip_handler = CommandHandler('help', tip)
     start_handler = CommandHandler('start', start_keyboard)
-    keyboard_handler = MessageHandler(filters.Regex('^(START|Change the Dialoge)$') & ~(filters.COMMAND | filters.Regex('^STOP$')), middle_keyboard)
+    # keyboard_handler = MessageHandler(filters.Regex('^(START|Change the Dialoge)$') & ~(filters.COMMAND | filters.Regex('^STOP$')), conversation_keyboard)
     middle_handler = MessageHandler(filters.Regex('^(START|Change the Dialoge)$') & ~(filters.COMMAND | filters.Regex('^STOP$')), middle)
     # call_start = CallbackQueryHandler(start_conversation, pattern="^" + str('START') + "$")
     stop_handler = CommandHandler('stop', stop)
@@ -213,7 +187,6 @@ def main() -> None:
 
             MIDDLE: [
                 middle_handler,
-                keyboard_handler,
             ],
 
             # CALL_START: [
