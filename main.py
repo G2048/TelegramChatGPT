@@ -44,9 +44,12 @@ FORMAT = '%(asctime)s::%(levelname)s::%(message)s'
 logging.basicConfig(filename=args.log, format=FORMAT, level=args.log_level)
 logger = logging.getLogger(__name__)
 
+
+
+END = ConversationHandler.END
 CHAT ='1'
 START ='2'
-CALL_START ='3'
+CHOOSE ='3'
 MIDDLE ='4'
 MENU ='5'
 GREETINGS = """Hello! I am an AI language model designed to assist and communicate with users. I am programmed to understand and respond to natural language queries and provide helpful responses. My purpose is to make tasks easier and more efficient for users."""
@@ -89,7 +92,7 @@ async def stop2(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def conversation_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [['STOP'], ['Change the Dialoge']]
+    keyboard = [['STOP'], ['Change the Dialoge'], ['Save the conversation']]
 
     keyboard_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
     await update.message.delete()
@@ -149,7 +152,7 @@ async def middle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logging.info(f'Midlle: {message}')
 
     if message == 'START':
-        keyboard = [['STOP'], ['Change the Dialoge']]
+        keyboard = [['STOP'], ['Change the Dialogue']]
 
         # Get the keyboard along to conversation
         keyboard_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
@@ -158,23 +161,67 @@ async def middle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(GREETINGS)
         return CHAT
 
-    if message == 'Get the list of Dialogues':
+    if message in ['Get the list of Dialogues', 'Change the Dialogue']:
         # Here will be placed a keyboard
-        logging.info('Get choose of dialoge')
-        # return MENU
+        logging.info('Get choose of dialogue')
+        return MENU
 
 
+COUNT = 0
+
+# Must need to make pagination
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Choose the dialog"""
-    # Must need to make pagination
-    forward_button = InlineKeyboardButton('Forward -->', callback_data='start')
-    back_button = InlineKeyboardButton('<--- Backward', callback_data='start')
-    choose_button = InlineKeyboardButton('Choose', callback_data='/start')
-    hide_button = InlineKeyboardButton('Hide', callback_data='/start')
-    keyboard = [[hide_button, choose_button], [back_button, forward_button]]
+    """It's the first keyboard in order to accept the first message from the Reply keboard"""
+    # message = update.message.text
+    # logging.info(f'Message inside MENU: {message}')
+
+    # Forward and bacward buttons must be dynamic!
+    next_button = InlineKeyboardButton('Next   →', callback_data='next_page')
+    back_button = InlineKeyboardButton('← Backward', callback_data='back_page')
+    choose_button = InlineKeyboardButton('Choose', callback_data='choose')
+    hide_button = InlineKeyboardButton('Hide', callback_data='hide')
+
+    keyboard = [[hide_button, choose_button], [back_button, next_button]]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(text='Get data From DataBase', reply_markup=reply_markup)
+    return CHOOSE
+
+
+async def selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """It's the Pagination-keyboard for user interaction"""
+
+    # Forward and bacward buttons must be dynamic!
+    next_button = InlineKeyboardButton('Next   →', callback_data='next_page')
+    back_button = InlineKeyboardButton('← Backward', callback_data='back_page')
+    count_button = InlineKeyboardButton(f'{COUNT}/1000', callback_data='_')
+
+    choose_button = InlineKeyboardButton('Confirm', callback_data='choose')
+    hide_button = InlineKeyboardButton('Hide', callback_data='hide')
+    keyboard = [[hide_button], [back_button, count_button, next_button], [choose_button]]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.edit_message_text(text='Get data From DataBase', reply_markup=reply_markup)
+    return CHOOSE
+
+# Pagination...
+async def incr(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global COUNT
+    COUNT += 1
+    logging.info(f'Count is {COUNT}')
+    return await selection(update, context)
+
+async def decr(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global COUNT
+    COUNT -= 1
+    logging.info(f'Count is {COUNT}')
+    return await selection(update, context)
+
+async def choose(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global COUNT
+    await update.callback_query.edit_message_text(f'Choose is {COUNT}')
+    return END
+
 
 
 def main() -> None:
@@ -182,48 +229,48 @@ def main() -> None:
 
     tip_handler = CommandHandler('help', tip)
     start_handler = CommandHandler('start', start_keyboard)
-    # keyboard_handler = MessageHandler(filters.Regex('^(START|Change the Dialoge)$') & ~(filters.COMMAND | filters.Regex('^STOP$')), conversation_keyboard)
-    middle_handler = MessageHandler(~(filters.COMMAND | filters.Regex('^STOP$') | filters.Regex('^Get the list of Dialogues$')), middle)
-    menu_handler = MessageHandler(filters.Regex('^Get the list of Dialogues$') & ~(filters.COMMAND | filters.Regex('^STOP$')), menu)
-    # call_start = CallbackQueryHandler(start_conversation, pattern="^" + str('START') + "$")
+    middle_handler = MessageHandler(~(filters.COMMAND | filters.Regex('^(STOP|forward)$')), middle) #conversation_keyboard)
+    menu_handler = MessageHandler(filters.Regex('^(Get the list of Dialogues|Change the Dialogue)$') & ~(filters.COMMAND | filters.Regex('^STOP$')), menu)
     stop_handler = CommandHandler('stop', stop)
     # forward_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), proxy_message)
-    forward_handler = MessageHandler(filters.TEXT & ~(filters.COMMAND | filters.Regex('^STOP$')), echo)
+    forward_handler = MessageHandler(filters.TEXT & ~(filters.COMMAND | filters.Regex('^STOP$') | filters.Regex('^Change the Dialogue$')), echo)
     stop_handler = MessageHandler(filters.Regex('^STOP$'), stop)
+
+
+    selection_handler = ConversationHandler(
+        entry_points=[menu_handler],
+        states = {
+        CHOOSE: [
+                CallbackQueryHandler(incr, pattern='next_page'),
+                CallbackQueryHandler(decr, pattern='back_page'),
+                CallbackQueryHandler(decr, pattern='^hide$'),
+                ]
+
+        },
+        fallbacks = [CallbackQueryHandler(choose, pattern='^choose$'),],
+        map_to_parent={END: MIDDLE}
+    )
 
     conv_handler = ConversationHandler(
         entry_points=[start_handler,],
         states = {
 
-            START: [
-            ],
-
             MIDDLE: [
                 middle_handler,
-                menu_handler,
             ],
 
-            # CALL_START: [
-            #     start_handler,
-            # ],
-
-            CHAT: [
-                forward_handler,
-            ],
-
-            MENU: [
-                menu_handler,
-            ],
+            CHAT: [forward_handler, middle_handler,],
+            MENU: [selection_handler],
         },
 
-        fallbacks=[ 
-            stop_handler,
-        ],
+        fallbacks=[stop_handler, ],
     )
+
     logging.info(f'Current state: {START} and {CHAT}')
 
     # application.add_handler(stop_handler)
     application.add_handler(tip_handler)
+    # application.add_handler(selection_handler)
     application.add_handler(conv_handler)
     application.run_polling()
 
