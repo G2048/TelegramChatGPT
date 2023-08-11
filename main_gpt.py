@@ -1,9 +1,10 @@
-import openai
-import logging
-import argparse
 import os
 import sys
-from pprint import pprint
+import logging
+import argparse
+import openai
+
+from dataclasses import dataclass
 from dotenv import load_dotenv
 
 
@@ -25,22 +26,17 @@ def test_ai():
         sys.exit(1)
 
 
+@dataclass(frozen=True)
 class Roles:
     """Role must started with 'You are ...' """
-    __slots__ = ['ChatGPT', 'ASSISTANT']
-
-    def __init__(self):
-        self.ChatGPT = 'You are a chatbot'
-        self.ASSISTANT = 'You are a helpful assistant.'
+    ChatGPT: str = 'You are a chatbot'
+    ASSISTANT: str = 'You are a helpful assistant.'
 
 
+@dataclass(frozen=True)
 class Models:
     """Avalible models open AI"""
-    __slots__ = ['GPT_turbo']
-
-    def __init__(self):
-        self.GPT_turbo = 'gpt-3.5-turbo'
-
+    GPT_turbo: str = 'gpt-3.5-turbo'
 
 
 class Create_Responce:
