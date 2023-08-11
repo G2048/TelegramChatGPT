@@ -1,9 +1,11 @@
 import os
 import sys
 import logging
+import logging.config
 import argparse
 import openai
 
+from settings import LogConfig
 from dataclasses import dataclass
 from dotenv import load_dotenv
 
@@ -19,14 +21,14 @@ def test_ai():
     try:
         answer = openai.ChatCompletion.create(model='gpt-3.5-turbo', messages=messages)
         # pprint(answer, width=1)
-        logging.debug(answer)
+        logger.debug(answer)
         return answer
     except Exception as e:
-        logging.error(str(e)[:100])
+        logger.error(str(e)[:100])
         sys.exit(1)
 
 
-@dataclass(frozen=True)
+@dataclaslogger=True)
 class Roles:
     """Role must started with 'You are ...' """
     ChatGPT: str = 'You are a chatbot'
@@ -67,7 +69,7 @@ class Create_Responce:
 
     def create_message(self):
         self.VAULT.append({'role': 'user', 'content': self.question})
-        logging.debug(self.VAULT)
+        logger.debug(self.VAULT)
         self.user_message = self.VAULT
 
     def safe_dialog(self, answer):
@@ -79,10 +81,10 @@ class Create_Responce:
     def ask(self):
         try:
             answer = openai.ChatCompletion.create(model='gpt-3.5-turbo', messages=self.user_message, temperature=0)
-            logging.debug(answer)
+            logger.debug(answer)
             return answer
         except Exception as e:
-            logging.error(str(e)[:100])
+            logger.error(str(e)[:100])
             sys.exit(1)
 
     def print_dialog(self):
@@ -157,8 +159,9 @@ if __name__ == '__main__':
 
 
     log_level = 50 - args.verbose * 10
-    FORMAT = '%(asctime)s::%(levelname)s::%(message)s'
-    logging.basicConfig(filename='', format=FORMAT, level=log_level)
+    logging.config.dictConfig(LogConfig)
+    logger = logging.getLogger('')
+    logger.setLevel = log_level
 
 
     # role = Roles().ChatGPT
