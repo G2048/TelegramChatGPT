@@ -28,5 +28,9 @@ LogConfig = {
             'level': 'NOTSET',
             'handlers': ['rotate', 'console'],
         },
+        'consolemode': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+        },
     }
 }
