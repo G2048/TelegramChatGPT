@@ -20,7 +20,6 @@ def test_ai():
     ]
     try:
         answer = openai.ChatCompletion.create(model='gpt-3.5-turbo', messages=messages)
-        # pprint(answer, width=1)
         logger.debug(answer)
         return answer
     except Exception as e:
@@ -28,7 +27,7 @@ def test_ai():
         sys.exit(1)
 
 
-@dataclaslogger=True)
+@dataclass(frozen=True)
 class Roles:
     """Role must started with 'You are ...' """
     ChatGPT: str = 'You are a chatbot'
