@@ -25,6 +25,55 @@ class Json:
     json: Dict[str, str]
 
 
+"""
+### Layout of data storage:
+    1. List of Contacts -> user_id (uniq, primary key)
+    ╭───┬─────────┬─────────────────╮
+    │ # │ user_id │    user_name    │
+    ├───┼─────────┼─────────────────┤
+    │ 0 │       1 │ Niki@telegram   │
+    │ 1 │       2 │ FixBot@telegram │
+    ╰───┴─────────┴─────────────────╯
+    INSERT, DELETE
+
+    2. List of Chats: user_id(forein key) -> chat_id (uniq, primary key) (Preview is the first message)
+    ╭───┬─────────┬─────────┬──────────────────────────────╮
+    │ # │ user_id │ chat_id │          chat_name           │
+    ├───┼─────────┼─────────┼──────────────────────────────┤
+    │ 0 │       1 │     983 │ Tell me about...             │
+    │ 1 │       2 │    1532 │ How create the machine of... │
+    ╰───┴─────────┴─────────┴──────────────────────────────╯
+    Only INSERT and DELETE
+
+    3. Chat_id(forein key) -> message_id(forein key) and number order of message_id for every chat_id
+    ╭───┬─────────┬────────────┬───────╮
+    │ # │ chat_id │ message_id │ order │
+    ├───┼─────────┼────────────┼───────┤
+    │ 0 │     983 │         23 │     0 │
+    │ 1 │    1532 │         24 │     0 │
+    │ 2 │    1532 │         25 │     1 │
+    │ 3 │     983 │         26 │     1 │
+    ╰───┴─────────┴────────────┴───────╯
+    Order equal Time ?
+
+    4. Message_id(uniq, primary key) -> Json with conversation
+    ╭───┬────────────┬───────────────────────╮
+    │ # │ message_id │        message        │
+    ├───┼────────────┼───────────────────────┤
+    │ 0 │         23 │ {'start': 'message1'} │
+    │ 1 │         24 │ {'start': 'message1'} │
+    ╰───┴────────────┴───────────────────────╯
+    INSERT, DELETE, UPDATE
+
+### Must will release:
+    1. Create a new user if don't exists
+    2. Create Chat
+    3. Choose chat
+    4. Update the current chat
+    5. Save chat
+    6. Delete chat (Only My)
+"""
+
 class IBackend(metaclass=ABCMeta):
 
     @abstractmethod
