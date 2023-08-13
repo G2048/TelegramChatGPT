@@ -97,7 +97,7 @@ class RedisBackend:
     def set_json(self, key: str, json_data: dict):
         if isinstance(json_data, type(dict)) and key is not None:
             key = key.lower()
-            logging.debug(f'Key: "{key}" Path: {Path.root_path()} Data: {json_data}')
+            logger.debug(f'Key: "{key}" Path: {Path.root_path()} Data: {json_data}')
 
             self.redis_client.json().set(key, Path.root_path(), json_data)
         else:
@@ -174,29 +174,29 @@ class HandleData:
     @property
     def json_conversation(self):
         if self.chat_id is not None:
-            logging.debug(f'Chat id: {self.chat_id}')
+            logger.debug(f'Chat id: {self.chat_id}')
             return self.client.get_json(self.chat_id)
 
     @json_conversation.setter
     def json_conversation(self, payload: dict) -> None:
-        logging.debug(f'Chat id: {self.chat_id} Payload: {payload}')
+        logger.debug(f'Chat id: {self.chat_id} Payload: {payload}')
         self.client.set_json(self.chat_id, payload)
 
 
 
 h = HandleData(Backend=RedisBackend)
 h.user_id = 12
-logging.info(f'Get user id: {h.user_id}')
+logger.info(f'Get user id: {h.user_id}')
 
 # h.chat_id = 'Start_conversation'
-# logging.info(f'Get Chat id: {h.chat_id}')
+# logger.info(f'Get Chat id: {h.chat_id}')
 
 # h.conversation = {'client': 'Vasay' , 'client2' : 'Oleg'}
-# logging.info(f'Get Conversation: {h.conversation}')
+# logger.info(f'Get Conversation: {h.conversation}')
 #
 
 # h.json_conversation = user3
 # h.json_conversation = {'chat_123' : [{'client': 'Vasay' , 'client2' : 'Oleg'},  {'client3': 'Robot' , 'client4' : 'Ui'}] }
 # h.json_conversation['chat_123'].append({'new_client': 'new_conv'})
-# logging.info("New conversation is: %s" % h.json_conversation['user'])
+# logger.info("New conversation is: %s" % h.json_conversation['user'])
 
