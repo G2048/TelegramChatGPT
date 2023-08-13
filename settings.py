@@ -3,7 +3,7 @@ LogConfig = {
     'formatters': {
         'details': {
             'class': 'logging.Formatter',
-            'format': '%(asctime)s::%(levelname)s::%(name)s::%(levelno)s::%(lineno)s::%(message)s',
+            'format': '%(asctime)s::%(levelname)s::%(filename)s::%(levelno)s::%(lineno)s::%(message)s',
             'incremental': True,
         },
     },
