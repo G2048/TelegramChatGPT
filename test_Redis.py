@@ -105,11 +105,13 @@ def test4():
     table_2 = 'Chats'
     chat_key_incr = 'chat_incr'
     chat_id = r.incrby(chat_key_incr, 1)
+    table_2_1 = 'Chats_Names'
     chat_name = 'Tell me about..'
 
     # Third table
     table_3 = 'Events'
     order = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
+    table_3_1 = 'Events_Order'
 
     # Fourth Table
     table_4 = 'Messages'
@@ -118,25 +120,36 @@ def test4():
     message = {'role': 'system', 'content': 'You are a helpful assistant.'}
 
 
+    j = r.json()
     # Fill data
     r.hset(table_1, user_id, user_name)
-    r.hset(table_2, chat_id, chat_name)
+    j.set(table_2, Path.root_path(), {user_id: [chat_id]})
+    r.hset(table_2_1, chat_id, chat_name)
 
     # Split chat_id and message_id to anothers tables
     # becouse Redis is simple key-value storage
-    r.hset(table_3, chat_id, message_id)
-    r.hset(table_4, message_id, order)
-
-    j = r.json()
-
-    # 2023-08-13 UpWrite!
-    j,set(table3, Path.root_path(), {chat_id, 'order': order})
-    j.set(message_id, Path.root_path(), message)
-
-    logger.debug(r.hget('Events', 1))
-    logger.debug(r.hget('Events', 1))
-
-    logger.debug(j.get(message_id))
+    # r.hset(table_3, chat_id, message_id)
+    # r.hset(table_4, message_id, order)
 
 
-test4()
+    j.set(table_3, Path.root_path(), {chat_id: [message_id]})
+    r.hset(table_3_1, message_id, order)
+
+    logger.debug(f'{message_id=} {message=}')
+    j.set(table_4, Path.root_path(), {message_id: message})
+
+
+    # Get message_id and relating messages
+    logger.debug(j.get('Messages'))
+
+    logger.debug(j.get(table_4)) # -> Get message
+    logger.debug(r.hget(table_3_1, message_id)) # -> Get Order(TimeStamp) of message
+    logger.debug(j.get(table_3)) # -> Get list of chat messages
+    logger.debug(r.hget(table_2_1, chat_id)) # -> Get ChatName
+    logger.debug(j.get(table_2)) # -> Get list of user chats
+    logger.debug(r.hget(table_1, user_id)) # -> Get UserName
+    r.flushall()
+
+
+if __name__ == '__main__':
+    test4()
