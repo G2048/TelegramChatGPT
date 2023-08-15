@@ -148,7 +148,10 @@ def test4():
     logger.debug(r.hget(table_2_1, chat_id)) # -> Get ChatName
     logger.debug(j.get(table_2)) # -> Get list of user chats
     logger.debug(r.hget(table_1, user_id)) # -> Get UserName
-    r.flushall()
+    logger.debug(r.type(table_1))
+    logger.debug(r.type(table_2))
+    logger.debug(r.type(table_3))
+    # r.flushall()
 
 
 if __name__ == '__main__':
