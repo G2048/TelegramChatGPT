@@ -3,6 +3,7 @@ import logging
 import logging.config
 import redis
 
+from typing import Union
 from abc import ABCMeta, abstractmethod
 from typing import Dict, Any
 from dataclasses import dataclass, make_dataclass
@@ -15,14 +16,11 @@ from redis.commands.json.path import Path
 # from redis.commands.search.query import NumericFilter, Query
 
 
-
 logging.config.dictConfig(LogConfig)
 logger = logging.getLogger('consolemode')
 
 
-@dataclass
-class Json:
-    json: Dict[str, str]
+json = Dict[str, str]
 
 
 """
@@ -71,7 +69,7 @@ class Json:
     3. Choose chat
     4. Update the current chat
     5. Save chat
-    6. Delete chat (Only My)
+    6. Delete chat (Only by owner)
 """
 
 class IBackend(metaclass=ABCMeta):
@@ -120,40 +118,73 @@ class IBackend(metaclass=ABCMeta):
 class RedisBackend:
 
     def __init__(self,):
-        self.redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
+        self.client = redis.Redis(host='localhost', port=6379, decode_responses=True)
+        self.json = self.client.json()
 
     def __name__(self):
         return 'Redis'
 
+    def increment(self, key_incr: str) -> Union[str, int]:
+        _id = self.client.incrby(key_incr, 1)
+        return _id
+
+    def update(self, table: str, *values, **additions):
+        key, value = values
+        self.client.hset(table, key, value)
+
+    def insert(self, table: str, new_dict: dict):
+        old_dict = self.select_json(table.lower())
+        self.json.set(table, Path.root_path(), old_dict.update(new_dict))
+
+    def select(self, table: str, _id: Union[str, int]) -> Union[str, int]:
+        data_type = self.client.type(table).decode('utf-8')
+
+        if data_type == 'ReJSON-RL':
+            return self.select_json(table)
+        elif data_type == 'hash':
+            return self.client.hget(table, _id)
+        else:
+            return NotImplemented
+
+    def select_json(self, table: str) -> json:
+        return self.json.get(table.lower())
+
+    def update_json(self, table: str, json_data: Union[dict, json]):
+        self.json.set(table.lower(), Path.root_path(), json_data)
+
+    insert_json = update_json
+
+
+
     def set_data(self, key: str, value: str):
-        self.redis_client.set(key, value)
+        self.client.set(key, value)
 
     def get_data(self, key: str) -> str:
-        return self.redis_client.get(key)
+        return self.client.get(key)
 
     def set_hashdata(self, key: str, set_map: dict):
-        self.redis_client.hset(key, mapping=set_map)
+        self.client.hset(key, mapping=set_map)
 
     def get_hashdata(self, client_id: str, key: str) -> str:
-        return self.redis_client.hget(client_id, key)
+        return self.client.hget(client_id, key)
 
     def get_hashalldata(self, client_id: str) -> dict:
-        return self.redis_client.hgetall(client_id)
+        return self.client.hgetall(client_id)
 
     def get_json(self, key: str) -> dict:
-        return self.redis_client.json().get(key.lower())
+        return self.json.get(key.lower())
 
     def set_json(self, key: str, json_data: dict):
         if isinstance(json_data, type(dict)) and key is not None:
             key = key.lower()
             logger.debug(f'Key: "{key}" Path: {Path.root_path()} Data: {json_data}')
 
-            self.redis_client.json().set(key, Path.root_path(), json_data)
+            self.json.set(key, Path.root_path(), json_data)
         else:
             raise ValueError('It is not json type!')
 
     def flush_db(self):
-        self.redis_client.flushall()
+        self.client.flushall()
 
 
 # Unused
