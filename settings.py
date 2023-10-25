@@ -1,3 +1,12 @@
+from dotenv import load_dotenv
+from os import getenv
+
+
+load_dotenv()
+
+TELEGRAM_TOKEN = getenv('TELEGRAM_TOKEN')
+OPENAI_TOKEN = getenv('OPENAI_TOKEN')
+
 LogConfig = {
     'version': 1,
     'formatters': {
