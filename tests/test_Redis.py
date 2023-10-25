@@ -2,7 +2,7 @@ import redis
 import logging.config
 from datetime import datetime
 from settings import LogConfig 
-from backend import RedisBackend
+from backend.backend import RedisBackend
 from redis.commands.json.path import Path
 
 logging.config.dictConfig(LogConfig)
