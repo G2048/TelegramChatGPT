@@ -1,19 +1,10 @@
-import asyncio
-import logging
-import os
-import argparse
-from main_gpt import *
+from chat_gpt.main_gpt import *
 
-from pprint import pprint
-from dotenv import load_dotenv
 from telegram import (
-    Update, Bot,
-    InlineKeyboardButton,
+    Update, InlineKeyboardButton,
     InlineKeyboardMarkup,
-    ReplyKeyboardMarkup, 
+    ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
-    MenuButtonCommands,
-    CallbackQuery,
 )
 from telegram.ext import (
     ApplicationBuilder,
@@ -26,9 +17,6 @@ from telegram.ext import (
 )
 # import Daemon from demon
 
-
-load_dotenv()
-TOKEN = os.getenv('TELEGRAM_TOKEN')
 
 
 help_log = 'without the -l option write to telegram.log otherwise print to file'
@@ -225,7 +213,7 @@ async def choose(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main() -> None:
-    application = ApplicationBuilder().token(TOKEN).build()
+    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     tip_handler = CommandHandler('help', tip)
     start_handler = CommandHandler('start', start_keyboard)
