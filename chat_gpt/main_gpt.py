@@ -1,11 +1,12 @@
-import os
 import sys
 import logging.config
-import argparse
 import openai
 
 from settings import LogConfig, OPENAI_TOKEN
 from dataclasses import dataclass
+
+logging.config.dictConfig(LogConfig)
+logger = logging.getLogger('')
 
 
 def test_ai():
@@ -140,43 +141,3 @@ class ChatParser:
 
     def _usage(self):
         return self.responce['usage']
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-t', '--dry-run', action='store_true', help='???')
-    parser.add_argument('-v', '--verbose', action='count', default=2, help='Log level verbosity')
-    args = parser.parse_args()
-
-    log_level = 50 - args.verbose * 10
-    logging.config.dictConfig(LogConfig)
-    logger = logging.getLogger('')
-    logger.setLevel = log_level
-
-    # role = Roles().ChatGPT
-    role = Roles().ASSISTANT
-    to_ai = Create_Responce(role)
-
-    while True:
-        try:
-            user_message = input('>>> ')
-            if user_message in ['print dialog', 'history']:
-                to_ai.print_dialog()
-            else:
-                to_ai.message = user_message
-                to_ai.create_message()
-                request = to_ai.ask()
-
-                parser = ChatParser(request)
-                answer = parser.message()
-                to_ai.safe_dialog(answer)
-
-                print()
-                print(answer)
-                print()
-        except KeyboardInterrupt:
-            sys.exit()
-
-
-if __name__ == '__main__':
-    main()
