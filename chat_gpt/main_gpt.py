@@ -2,8 +2,10 @@ import sys
 import logging.config
 import openai
 
-from settings import LogConfig, OPENAI_TOKEN
 from dataclasses import dataclass
+from  backend.repository import ListMessageRepository
+from settings import LogConfig, OPENAI_TOKEN
+
 
 logging.config.dictConfig(LogConfig)
 logger = logging.getLogger('')
@@ -38,22 +40,17 @@ class Models:
     GPT_turbo: str = 'gpt-3.5-turbo'
 
 
-class UserRepository:
-
-    def add(self):
-        pass
-    def get(self):
-        pass
-
-class Create_Responce:
+class CreateResponce:
 
     def __init__(self, role):
-        self.VAULT = []
+        self.VAULT = ListMessageRepository()
         openai.api_key = OPENAI_TOKEN
-        self.__create_role(role)
-        self.VAULT.append(self.message_role)
+        self.create_role(role)
+        self.user_message = None
+        self.question = None
+        self.VAULT.add(self.message_role)
 
-    def __create_role(self, role):
+    def create_role(self, role):
         self.message_role = {'role': 'system', 'content': role}
 
     @property
@@ -70,15 +67,15 @@ class Create_Responce:
         self.question = question
 
     def create_message(self):
-        self.VAULT.append({'role': 'user', 'content': self.question})
+        self.VAULT.add({'role': 'user', 'content': self.question})
         logger.debug(self.VAULT)
-        self.user_message = self.VAULT
+        # self.user_message = self.VAULT
 
     def safe_dialog(self, answer):
         if len(self.VAULT) >= 250:
             del self.VAULT[0]
 
-        self.VAULT.append({'role': 'system', 'content': answer})
+        self.VAULT.add({'role': 'system', 'content': answer})
 
     def ask(self):
         try:
@@ -114,6 +111,13 @@ class ChatParser:
             {"role": "user", "content": "Where was it played?"}
         ]
     """
+
+    __instance = None
+
+    def __new__(cls, response):
+        if cls.__instance is None:
+            cls.__instance = super().__new__(cls)
+        return cls.__instance
 
     def __init__(self, responce):
         self.responce = responce
