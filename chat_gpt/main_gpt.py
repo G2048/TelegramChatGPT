@@ -38,10 +38,17 @@ class Models:
     GPT_turbo: str = 'gpt-3.5-turbo'
 
 
+class UserRepository:
+
+    def add(self):
+        pass
+    def get(self):
+        pass
+
 class Create_Responce:
-    VAULT = []
 
     def __init__(self, role):
+        self.VAULT = []
         openai.api_key = OPENAI_TOKEN
         self.__create_role(role)
         self.VAULT.append(self.message_role)
@@ -111,33 +118,18 @@ class ChatParser:
     def __init__(self, responce):
         self.responce = responce
         self.answer = ''
+        self._finish_reason = responce['choices'][0]['finish_reason']
+        self._index = responce['choices'][0]['index']
+        self.role = responce['choices'][0]['message']['role']
+        self.created = responce['created']
+        self.id = responce['id']
+        self.model = responce['model']
+        self.object = responce['object']
+        self.usage = responce['usage']
 
-    def _finish_reason(self):
-        return self.responce['choices'][0]['finish_reason']
-
-    def _index(self):
-        return self.responce['choices'][0]['index']
-
+    @property
     def message(self):
         tokens = self.responce['choices'][0]['message']['content']
         for token in tokens:
             self.answer += token
         return self.answer
-
-    def role(self):
-        return self.responce['choices'][0]['message']['role']
-
-    def created(self):
-        return self.responce['created']
-
-    def id(self):
-        return self.responce['id']
-
-    def _model(self):
-        return self.responce['model']
-
-    def _object(self):
-        return self.responce['object']
-
-    def _usage(self):
-        return self.responce['usage']
