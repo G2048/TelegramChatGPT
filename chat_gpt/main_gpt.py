@@ -69,7 +69,7 @@ class CreateResponce:
     def create_message(self):
         self.VAULT.add({'role': 'user', 'content': self.question})
         logger.debug(self.VAULT)
-        # self.user_message = self.VAULT
+        self.user_message = list(self.VAULT)
 
     def safe_dialog(self, answer):
         if len(self.VAULT) >= 250:

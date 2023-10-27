@@ -40,7 +40,7 @@ def main():
 
                 #TODO: need to incapsulate this logic into the Chat
                 parser = ChatParser(request)
-                answer = parser.message()
+                answer = parser.message
                 to_ai.safe_dialog(answer)
 
                 print()
