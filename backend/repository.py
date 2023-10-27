@@ -49,3 +49,6 @@ class ListMessageRepository(IMessageRepository):
 
     def __delitem__(self, index):
         del self.messages[index]
+
+    def __repr__(self):
+        return str(self.messages)

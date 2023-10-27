@@ -3,16 +3,16 @@ import logging.config
 import openai
 
 from dataclasses import dataclass
-from  backend.repository import ListMessageRepository
+from backend.repository import ListMessageRepository
 from settings import LogConfig, OPENAI_TOKEN
-
 
 logging.config.dictConfig(LogConfig)
 logger = logging.getLogger('')
 
+openai.api_key = OPENAI_TOKEN
+
 
 def test_ai():
-    openai.api_key = OPENAI_TOKEN
     messages = [
         # {'role': 'system', 'content': 'You are a chatbot'},
         {'role': 'system', 'content': 'You are a helpful assistant.'},
@@ -40,67 +40,11 @@ class Models:
     GPT_turbo: str = 'gpt-3.5-turbo'
 
 
-class CreateResponce:
-
-    def __init__(self, role):
-        self.VAULT = ListMessageRepository()
-        openai.api_key = OPENAI_TOKEN
-        self.create_role(role)
-        self.user_message = None
-        self.question = None
-        self.VAULT.add(self.message_role)
-
-    def create_role(self, role):
-        self.message_role = {'role': 'system', 'content': role}
-
-    @property
-    def message(self):
-        if self.message is not None:
-            # self.user_message = [self.message_role, {'role': 'user', 'content': self.question}]
-            # return self.user_message
-            return self.message
-        else:
-            return 'Hello World!'
-
-    @message.setter
-    def message(self, question):
-        self.question = question
-
-    def create_message(self):
-        self.VAULT.add({'role': 'user', 'content': self.question})
-        logger.debug(self.VAULT)
-        self.user_message = list(self.VAULT)
-
-    def safe_dialog(self, answer):
-        if len(self.VAULT) >= 250:
-            del self.VAULT[0]
-
-        self.VAULT.add({'role': 'system', 'content': answer})
-
-    def ask(self):
-        try:
-            answer = openai.ChatCompletion.create(model='gpt-3.5-turbo', messages=self.user_message, temperature=0)
-            logger.debug(answer)
-            return answer
-        except Exception as e:
-            logger.error(str(e)[:100])
-            sys.exit(1)
-
-    def print_dialog(self):
-        for dialog in self.VAULT:
-            if dialog['role'] == 'system':
-                speaker = 'ChatGPT'
-            else:
-                speaker = 'You'
-            print()
-            print(f'{speaker}: {dialog["content"]}')
-
-
 class ChatParser:
-    """The main input is the messages parameter. 
-        Messages must be an array of message objects, 
-            where each object has a role (either "system", "user", or "assistant") 
-            and content (the content of the message). 
+    """The main input is the messages parameter.
+        Messages must be an array of message objects,
+            where each object has a role (either "system", "user", or "assistant")
+            and content (the content of the message).
         Conversations can be as short as 1 message or fill many pages.
 
     Example:
@@ -137,3 +81,64 @@ class ChatParser:
         for token in tokens:
             self.answer += token
         return self.answer
+
+
+class Chat:
+    pass
+
+
+class CreateResponce:
+
+    def __init__(self, role):
+        self.VAULT = ListMessageRepository()
+        self.create_role(role)
+        self.user_message = None
+        self.question = None
+        self.VAULT.add(self.message_role)
+
+    def create_role(self, role):
+        self.message_role = {'role': 'system', 'content': role}
+
+    @property
+    def message(self):
+        if self.message is not None:
+            # self.user_message = [self.message_role, {'role': 'user', 'content': self.question}]
+            # return self.user_message
+            return self.message
+        else:
+            return 'Hello World!'
+
+    @message.setter
+    def message(self, question):
+        self.question = question
+
+    def create_message(self):
+        self.VAULT.add({'role': 'user', 'content': self.question})
+        logger.debug(self.VAULT)
+        self.user_message = list(self.VAULT)
+
+    def safe_dialog(self, answer):
+        if len(self.VAULT) >= 250:
+            del self.VAULT[0]
+
+        self.VAULT.add({'role': 'system', 'content': answer})
+
+    def ask(self):
+        try:
+            answer = openai.ChatCompletion.create(model='gpt-3.5-turbo', messages=self.user_message, temperature=0)
+            logger.debug(answer)
+            parser = ChatParser(answer)
+            self.answer = parser.message
+            self.safe_dialog(self.answer)
+        except Exception as e:
+            logger.error(str(e)[:100])
+            sys.exit(1)
+
+    def print_dialog(self):
+        for dialog in self.VAULT:
+            if dialog['role'] == 'system':
+                speaker = 'ChatGPT'
+            else:
+                speaker = 'You'
+            print()
+            print(f'{speaker}: {dialog["content"]}')

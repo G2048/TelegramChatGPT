@@ -36,15 +36,9 @@ def main():
             else:
                 to_ai.message = user_message
                 to_ai.create_message()
-                request = to_ai.ask()
-
-                #TODO: need to incapsulate this logic into the Chat
-                parser = ChatParser(request)
-                answer = parser.message
-                to_ai.safe_dialog(answer)
-
+                to_ai.ask()
                 print()
-                print(answer)
+                print(to_ai.answer)
                 print()
         except KeyboardInterrupt:
             exit()
