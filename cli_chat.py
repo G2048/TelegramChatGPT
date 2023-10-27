@@ -35,7 +35,6 @@ def main():
                 to_ai.print_dialog()
             else:
                 to_ai.message = user_message
-                to_ai.create_message()
                 to_ai.ask()
                 print()
                 print(to_ai.answer)
