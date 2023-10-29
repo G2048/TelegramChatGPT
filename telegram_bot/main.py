@@ -44,7 +44,7 @@ GREETINGS = """Hello! I am an AI language model designed to assist and communica
 
 
 role = Roles().ASSISTANT
-ask_to_ai = Create_Responce(role)
+ask_to_ai = CreateResponce(role)
 logging.debug(ask_to_ai)
 
 
