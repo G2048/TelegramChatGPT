@@ -1,4 +1,5 @@
 import sqlite3
+from collections import namedtuple
 
 """
 ### Layout of data storage:
@@ -35,35 +36,61 @@ import sqlite3
 """
 
 
-class Database:
+def namedtuple_factory(cursor, row):
+    fields = [column[0] for column in cursor.description]
+    cls = namedtuple("Row", fields)
+    return cls._make(row)
+
+
+class SqliteDatabase:
     def __init__(self, database):
         self.connection = sqlite3.connect(database)
-        self.__init_sql_create_database()
+        self.connection.row_factory = namedtuple_factory
+        self.cursor = self.connection.cursor()
+        self.close = self.connection.close
+        self.commit = self.connection.commit
 
     def __init_sql_create_database(self):
         self.sql_create_users_table = """CREATE TABLE IF NOT EXISTS users
                                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                     username TEXT,
-                                     FOREIGN KEY (id) REFERENCES users_chats(user_id)
-                                     )
+                                     name TEXT,
+                                     description TEXT,
+                                     FOREIGN KEY (id) REFERENCES chats(user_id)
+                                     );
                                   """
-        self.sql_create_users_chats_table = """CREATE TABLE IF NOT EXISTS users_chats
+        self.sql_create_users_chats_table = """CREATE TABLE IF NOT EXISTS chats
                                         (id INTEGER PRIMARY KEY AUTOINCREMENT,
                                          user_id INTEGER,
-                                         chat_name TEXT,
-                                         FOREIGN KEY (id) REFERENCES chats_messages(chat_id)
-                                         )
+                                         name TEXT,
+                                         FOREIGN KEY (id) REFERENCES messages(chat_id)
+                                         );
                                        """
-        self.sql_create_chats_messages_table = """CREATE TABLE IF NOT EXISTS chats_messages
+        self.sql_create_chats_messages_table = """CREATE TABLE IF NOT EXISTS messages
                                         (id INTEGER PRIMARY KEY AUTOINCREMENT,
                                          chat_id INTEGER,
-                                         message TEXT
-                                         )
+                                         content TEXT,
+                                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                                         );
                                     """
+        self.sql_create_index_chat_id = """CREATE INDEX IF NOT EXISTS idx_chat_id ON messages(chat_id);"""
+
     def create(self):
-        self.connection.execute(self.sql_create_users_table)
-        self.connection.execute(self.sql_create_users_chats_table)
-        self.connection.execute(self.sql_create_chats_messages_table)
+        self.__init_sql_create_database()
+        self.execute(self.sql_create_users_table)
+        self.execute(self.sql_create_users_chats_table)
+        self.execute(self.sql_create_chats_messages_table)
+        self.execute(self.sql_create_index_chat_id)
+
+    def execute(self, sql, *args):
+        self.cursor.execute(sql, args)
+        self.connection.commit()
+
+    def select(self, sql, *args):
+        self.cursor.execute(sql, args)
+        return self.cursor.fetchall()
+
+    def add_user(self, user):
+        self.execute('INSERT INTO users(name) VALUES (?)', (user,))
 
     def __del__(self):
         self.connection.close()

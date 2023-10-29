@@ -118,27 +118,6 @@ class User:
 >>> message.text
 """
 
-class Database:
-    def __init__(self, database):
-        self.users = UserRepository(database)
-        self.chats = ChatRepository(database)
-        self.dialogs = DialogRepository(database)
-
-
-
-class ChatRepository:
-    def __init__(self, database):
-        self.database = database
-
-    def create(self, chat_id):
-        self.database.connection.execute(f'INSERT INTO {self.database.users(chat_id)}')
-        return chat_id
-    def list_chats(self):
-        return self.database.connection.execute(f'SELECT * FROM {self.database.users}')
-    def __call__(self, *args, **kwargs):
-        return self.list_chats()
-    __contains__ = __call__
-
 class Chat:
     def __init__(self, chat_id):
         if chat_id not in self.database.chats():
@@ -151,7 +130,7 @@ class Chat:
     def __create_role(self, role):
         self.message_role = {'role': 'system', 'content': role}
 
-    def list_dialogs() -> list:
+    def list_dialogs(self) -> list:
         pass
 
 
