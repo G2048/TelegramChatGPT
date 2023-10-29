@@ -161,3 +161,4 @@ cython_debug/
 *.xlsx
 REVERSE/*
 /.idea/*
+*.db
