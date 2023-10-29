@@ -39,9 +39,9 @@ class TestUserRepository(unittest.TestCase):
         self.assertEqual(user_id, 2)
         print(admin_id, user_id)
 
-    def test_last_user(self):
+    def test_last(self):
         self.test_add()
-        user = self.repository.last()
+        user = self.repository.last_by_id()
         self.assertIsNotNone(user)
         print(f'{user=}')
 
@@ -86,13 +86,13 @@ class TestChatRepository(unittest.TestCase):
 
     def test_last(self):
         self.test_add()
-        user = self.repository.last()
+        user = self.repository.last_by_id(user_id=1)
         self.assertIsNotNone(user)
         print(f'{user=}')
 
     def test_list(self):
         self.test_add()
-        users = self.repository.list()
+        users = self.repository.list(1)
         self.assertIsNotNone(users)
         self.assertIsInstance(users, list)
         for user in users:
@@ -123,21 +123,22 @@ class TestDialogRepository(unittest.TestCase):
         self.repository = DialogRepository(self.database)
 
     def test_add(self):
-        chat_admin_id = self.repository.add('chat_admin', 'I never wanted this...')
-        chat_user_id = self.repository.add('chat_user_1', 'Let burn the Galaxy!')
+        chat_admin_id = self.repository.add(1, 'I never wanted this...')
+        chat_user_id = self.repository.add(2, 'Let burn the Galaxy!')
         self.assertEqual(chat_admin_id, 1)
         self.assertEqual(chat_user_id, 2)
         print(chat_admin_id, chat_user_id)
 
     def test_last(self):
         self.test_add()
-        chat = self.repository.last()
+        chat = self.repository.last_by_id(chat_id=1)
         self.assertIsNotNone(chat)
         print(f'{chat=}')
+        print(chat.content)
 
     def test_list(self):
         self.test_add()
-        messages = self.repository.list()
+        messages = self.repository.list(1)
         self.assertIsNotNone(messages)
         self.assertIsInstance(messages, list)
         for message in messages:

@@ -10,7 +10,7 @@ class Repository:
         pass
 
     @abstractmethod
-    def last(self):
+    def last_by_id(self):
         pass
 
     @abstractmethod
@@ -37,7 +37,7 @@ class UserRepository(Repository):
         self.database.execute('INSERT INTO users(name, description) VALUES(?, ?);', user, description)
         return self.get_id(user)
 
-    def last(self):
+    def last_by_id(self, *args):
         user = self.database.select('SELECT * FROM users ORDER BY id DESC LIMIT 1;')
         return user[0] if user else None
 
@@ -55,21 +55,22 @@ class UserRepository(Repository):
 class ChatRepository(Repository):
 
     def add(self, user_id, chat_name):
-        self.database.execute(f'INSERT INTO chats(user_id, name) VALUES (?, ?);', user_id, chat_name)
+        self.database.execute('INSERT INTO chats(user_id, name) VALUES (?, ?);', user_id, chat_name)
         return self.get_id(user_id)
 
-    def last(self):
-        return self.database.select(f'SELECT * FROM chats ORDER BY id DESC LIMIT 1;')[0]
+    def last_by_id(self, user_id):
+        chats = self.database.select('SELECT * FROM chats WHERE user_id = ? ORDER BY id DESC LIMIT 1;', user_id)
+        return chats[0] if chats else None
 
     def get_id(self, user_id):
-        chat_id = self.database.select(f'SELECT id FROM chats WHERE user_id = ? ;', user_id)[0]
+        chat_id = self.database.select('SELECT id FROM chats WHERE user_id = ? ;', user_id)[0]
         return chat_id.id if chat_id else None
 
-    def list(self):
-        return self.database.select(f'SELECT * FROM chats ORDER BY id;')
+    def list(self, user_id):
+        return self.database.select('SELECT * FROM chats WHERE user_id = ? ORDER BY id;', user_id)
 
     def list_id(self):
-        return self.database.select(f'SELECT id FROM chats ORDER BY id;')
+        return self.database.select('SELECT id FROM chats ORDER BY id;')
 
 
 class DialogRepository(Repository):
@@ -78,15 +79,16 @@ class DialogRepository(Repository):
         self.database.execute('INSERT INTO messages(chat_id, content) VALUES (?, ?);', chat_id, message)
         return self.get_id(chat_id)
 
-    def last(self):
-        return self.database.select(f'SELECT * FROM messages ORDER BY id DESC LIMIT 1;')[0]
+    def last_by_id(self, chat_id):
+        message = self.database.select('SELECT * FROM messages WHERE chat_id = ? ORDER BY id DESC LIMIT 1;', chat_id)
+        return message[0] if message else None
 
     def get_id(self, dialog_id):
-        dialog_id = self.database.select(f'SELECT id FROM messages WHERE chat_id = ? ;', dialog_id)[0]
+        dialog_id = self.database.select('SELECT id FROM messages WHERE chat_id = ? ;', dialog_id)[0]
         return dialog_id.id if dialog_id else None
 
-    def list(self):
-        return self.database.select(f'SELECT * FROM messages ORDER BY id;')
+    def list(self, chat_id):
+        return self.database.select('SELECT * FROM messages WHERE chat_id = ? ORDER BY id;', chat_id)
 
     def list_id(self):
-        return self.database.select(f'SELECT id FROM messages ORDER BY id;')
+        return self.database.select('SELECT id FROM messages ORDER BY id;')
