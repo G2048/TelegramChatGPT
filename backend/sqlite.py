@@ -90,7 +90,7 @@ class SqliteDatabase:
         return self.cursor.fetchall()
 
     def add_user(self, user):
-        self.execute('INSERT INTO users(name) VALUES (?)', (user,))
+        self.execute('INSERT INTO users(name) VALUES (?)', user)
 
     def __del__(self):
         self.connection.close()
