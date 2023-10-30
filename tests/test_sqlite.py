@@ -59,7 +59,7 @@ class TestUserRepository(unittest.TestCase):
         self.assertIsNotNone(users_id)
         self.assertIsInstance(users_id, list)
         for user_id in users_id:
-            print(f'{user_id.id=}')
+            print(f"{user_id['id']=}")
 
     def test_contain_id(self):
         self.test_add()
@@ -78,10 +78,12 @@ class TestChatRepository(unittest.TestCase):
         self.repository = ChatRepository(self.database)
 
     def test_add(self):
-        chat_admin_id = self.repository.add(1, 'Chat number 1')
+        chat_admin_id = self.repository.add(1, 'User 1 Chat number 1')
         chat_user_id = self.repository.add(2, 'Chat number 2')
+        chat_admin_id_2 = self.repository.add(1, 'User 1 Chat number 2')
         self.assertEqual(chat_admin_id, 1)
         self.assertEqual(chat_user_id, 2)
+        self.assertEqual(chat_admin_id_2, 3)
         print(chat_admin_id, chat_user_id)
 
     def test_last(self):
@@ -92,12 +94,13 @@ class TestChatRepository(unittest.TestCase):
 
     def test_list(self):
         self.test_add()
-        users = self.repository.list(1)
-        self.assertIsNotNone(users)
-        self.assertIsInstance(users, list)
-        for user in users:
-            print(user)
-            print(f'{user.id=} {user.name=} {user.name=}')
+        user_id = 1
+        chats = self.repository.list(user_id)
+        self.assertIsNotNone(chats)
+        self.assertIsInstance(chats, list)
+        for chat in chats:
+            # print(chat)
+            print(f"{chat['id']=} {chat['name']=} {chat['user_id']=}")
 
     def test_list_id(self):
         self.test_add()
@@ -134,7 +137,7 @@ class TestDialogRepository(unittest.TestCase):
         chat = self.repository.last_by_id(chat_id=1)
         self.assertIsNotNone(chat)
         print(f'{chat=}')
-        print(chat.content)
+        print(chat['content'])
 
     def test_list(self):
         self.test_add()
@@ -142,7 +145,8 @@ class TestDialogRepository(unittest.TestCase):
         self.assertIsNotNone(messages)
         self.assertIsInstance(messages, list)
         for message in messages:
-            print(f'{message.id=} {message.chat_id=} {message.content=} {message.created_at=}')
+
+            print(f"{message['id']=} {message['chat_id']=} {message['content']=} {message['created_at']=}")
 
     def test_list_id(self):
         self.test_add()
@@ -150,7 +154,7 @@ class TestDialogRepository(unittest.TestCase):
         self.assertIsNotNone(chats_id)
         self.assertIsInstance(chats_id, list)
         for user_id in chats_id:
-            print(f'{user_id.id=}')
+            print(f"{user_id['id']=}")
 
     def test_contain_id(self):
         self.test_add()

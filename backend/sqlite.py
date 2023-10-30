@@ -45,7 +45,8 @@ def namedtuple_factory(cursor, row):
 class SqliteDatabase:
     def __init__(self, database):
         self.connection = sqlite3.connect(database)
-        self.connection.row_factory = namedtuple_factory
+        # self.connection.row_factory = namedtuple_factory
+        self.connection.row_factory = sqlite3.Row
         self.cursor = self.connection.cursor()
         self.close = self.connection.close
         self.commit = self.connection.commit
@@ -72,6 +73,9 @@ class SqliteDatabase:
                                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                                          );
                                     """
+        self.sql_create_unique_users_table = """CREATE UNIQUE INDEX IF NOT EXISTS
+                                             idx_user_id ON users(id);
+                                             """
         self.sql_create_index_chat_id = """CREATE INDEX IF NOT EXISTS idx_chat_id ON messages(chat_id);"""
 
     def create(self):

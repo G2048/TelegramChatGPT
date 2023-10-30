@@ -26,7 +26,7 @@ class Repository:
         pass
 
     def __call__(self, *args, **kwargs):
-        return (row.id for row in self.list_id())
+        return (row['id'] for row in self.list_id())
 
     __contains__ = __call__
 
@@ -43,7 +43,7 @@ class UserRepository(Repository):
 
     def get_id(self, user):
         user = self.database.select('SELECT id FROM users WHERE name = ?;', user)[0]
-        return user.id if user else None
+        return user['id'] if user else None
 
     def list(self):
         return self.database.select('SELECT * FROM users;')
@@ -56,7 +56,7 @@ class ChatRepository(Repository):
 
     def add(self, user_id, chat_name):
         self.database.execute('INSERT INTO chats(user_id, name) VALUES (?, ?);', user_id, chat_name)
-        return self.get_id(user_id)
+        return self.last_by_id(user_id)['id']
 
     def last_by_id(self, user_id):
         chats = self.database.select('SELECT * FROM chats WHERE user_id = ? ORDER BY id DESC LIMIT 1;', user_id)
@@ -64,7 +64,7 @@ class ChatRepository(Repository):
 
     def get_id(self, user_id):
         chat_id = self.database.select('SELECT id FROM chats WHERE user_id = ? ;', user_id)[0]
-        return chat_id.id if chat_id else None
+        return chat_id['id'] if chat_id else None
 
     def list(self, user_id):
         return self.database.select('SELECT * FROM chats WHERE user_id = ? ORDER BY id;', user_id)
@@ -85,7 +85,7 @@ class DialogRepository(Repository):
 
     def get_id(self, dialog_id):
         dialog_id = self.database.select('SELECT id FROM messages WHERE chat_id = ? ;', dialog_id)[0]
-        return dialog_id.id if dialog_id else None
+        return dialog_id['id'] if dialog_id else None
 
     def list(self, chat_id):
         return self.database.select('SELECT * FROM messages WHERE chat_id = ? ORDER BY id;', chat_id)
