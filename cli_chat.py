@@ -1,7 +1,7 @@
 import argparse
 import logging.config
 from settings import LogConfig
-from chat_gpt.main_gpt import Roles, CreateResponce, ChatParser
+from chat_gpt.chat import Roles, ChatGPT, Models
 
 logging.config.dictConfig(LogConfig)
 logger = logging.getLogger('')
@@ -16,6 +16,20 @@ def main():
     logger.setLevel = log_level
 
     roles = {'1': Roles.ChatGPT, '2': Roles.ASSISTANT}
+    models = {'1': Models.GPT_turbo}
+
+    print('The current chat models: ')
+    print(f'[1] {Models.GPT_turbo=}')
+    print()
+    while True:
+        model = input('Choose chat model: ')
+        if model not in models:
+            print('No! Only gpt-3.5!')
+            model = '1'
+            break
+        else:
+            break
+
     print('The current roles: ')
     print(f'[1] {Roles.ChatGPT=}')
     print(f'[2] {Roles.ASSISTANT=}')
@@ -27,7 +41,8 @@ def main():
         else:
             break
 
-    to_ai = CreateResponce(roles[role])
+    to_ai = ChatGPT()
+    to_ai.new_dialog(roles[role], models[model])
     while True:
         try:
             user_message = input('>>> ')
@@ -35,9 +50,9 @@ def main():
                 to_ai.print_dialog()
             else:
                 to_ai.message = user_message
-                to_ai.ask()
+                answer = to_ai.ask()
                 print()
-                print(to_ai.answer)
+                print(answer)
                 print()
         except KeyboardInterrupt:
             exit()

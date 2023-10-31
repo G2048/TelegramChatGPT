@@ -3,7 +3,6 @@ import logging.config
 import openai
 
 from dataclasses import dataclass
-from backend.repository import ListMessageRepository
 from settings import LogConfig, OPENAI_TOKEN
 
 logging.config.dictConfig(LogConfig)
@@ -65,7 +64,7 @@ class ChatParser:
 
     def __init__(self, responce):
         self.responce = responce
-        self.answer = ''
+        self.answer = responce['choices'][0]['message']['content']
         self._finish_reason = responce['choices'][0]['finish_reason']
         self._index = responce['choices'][0]['index']
         self.role = responce['choices'][0]['message']['role']
@@ -75,93 +74,40 @@ class ChatParser:
         self.object = responce['object']
         self.usage = responce['usage']
 
+
+class ChatGPT:
+
+    def __init__(self, temperature=0):
+        self.VAULT = []
+        self._user_message = {}
+        self._answer = {}
+        self.temperature = temperature
+
+    # It's the start message
+    def new_dialog(self, role: Roles, model: Models = Models.GPT_turbo):
+        # Role is start message
+        self.model = model
+        self.answer = role
+
+    def fill_messages(self, messages: list):
+        self.VAULT.extend(messages)
+
     @property
-    def message(self):
-        tokens = self.responce['choices'][0]['message']['content']
-        for token in tokens:
-            self.answer += token
-        return self.answer
+    def answer(self):
+        return self._answer
 
+    @answer.setter
+    def answer(self, answer):
+        self._answer = {'role': 'system', 'content': answer}
+        self.save(self._answer)
 
-# TODO: Need to use the Chain of Responsibility pattern
-class User:
-    def __init__(self, user_id):
-        self.database = RedisBackend()
-        if not in self.database.users(user_id):
-            user_id = self.database.users.create(user_id)
-        self.user_id = user_id
+    def ask_question(self, question):
+        self.message = question
+        return self.ask()
 
-    def list_chats(self) -> list:
-        return self.database.chats(self.user_id)
-
-
-""" The schema of conversation:
-
->>> database = RedisBackend()
->>> user = User(user_id)
->>> user.list_chats() # print chats id
->>> chat_id = user.last_chat()
->>> 
->>> chat = Chat(chat_id)
->>> chat.list_messages()
->>> message_id = chat.last_message()
->>>
->>> message = Message(last_message_id=message_id)
->>> application = Application()
->>>
->>> # while True:
->>> answer = application.ask_question()
->>> print(answer)
->>> message.save(answer, message.id)
->>> message.id
->>> message.content
->>> message.text
-"""
-
-class Chat:
-    def __init__(self, chat_id):
-        if chat_id not in self.database.chats():
-            chat_id = self.database.chats.create(chat_id)
-        self.chat_id = chat_id
-
-    def new_dialog(self, role: Roles):
-        star_message = self.__create_role(role)
-
-    def __create_role(self, role):
-        self.message_role = {'role': 'system', 'content': role}
-
-    def list_dialogs(self) -> list:
-        pass
-
-
-class Dialog:
-    def __init__(self, dialog_id):
-        if not in self.database.dialogs(dialog_id):
-            dialog_id = self.database.dialogs.create(dialog_id)
-        self.dialog_id = dialog_id
-
-    def ask_question(self):
-        pass
-
-    def message(self):
-        pass
-
-    def print_dialog(self):
-        pass
-
-
-class CreateResponce:
-
-    def __init__(self, role):
-        self.VAULT = ListMessageRepository()
-        self._user_message = {'role': 'user', 'content': 'Hello!'}
-        self.question = None
-        # It's the start message
-        self.create_role(role)
-        self.VAULT.add(self.message_role)
-
-    def create_role(self, role):
-        self.message_role = {'role': 'system', 'content': role}
+    def list_dialogs(self) -> tuple:
+        for dialog in self.VAULT:
+            yield (dialog['role'], dialog['content'])
 
     @property
     def message(self):
@@ -169,9 +115,6 @@ class CreateResponce:
 
     @message.setter
     def message(self, question):
-        self._create_message(question)
-
-    def _create_message(self, question):
         self._user_message = {'role': 'user', 'content': question}
         self.save(self._user_message)
 
@@ -179,16 +122,21 @@ class CreateResponce:
         logger.debug(self.VAULT)
         if len(self.VAULT) >= 250:
             del self.VAULT[0]
-        self.VAULT.add(message)
+        self.VAULT.append(message)
+
+    def __create_message(self, role, message):
+        self.save({'role': role, 'content': message})
 
     def ask(self):
         try:
-            answer = openai.ChatCompletion.create(model='gpt-3.5-turbo', messages=list(self.VAULT), temperature=0)
+            answer = openai.ChatCompletion.create(model=self.model, messages=self.VAULT,
+                                                  temperature=self.temperature
+                                                  )
             logger.debug(answer)
-            parser = ChatParser(answer)
-            self.answer = parser.message
-            self.save({'role': 'system', 'content': self.answer})
-            return self.answer
+            self._parser = ChatParser(answer)
+            self.answer = self._parser.answer
+            # self.__create_message(self._parser.role, self._parser.answer)
+            return self._parser.answer
         except Exception as e:
             logger.error(str(e)[:100])
             sys.exit(1)
