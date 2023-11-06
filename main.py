@@ -50,32 +50,57 @@ class BaseHandler:
         if self._next_handler:
             return self._next_handler.handle(*args, **kwargs)
 
-    def new(self, entity_id, message):
-        message_id = self.repository.add(entity_id, message)
-        logger.info(f'{type(self).__name__} with {message_id} successfully created!')
+    def new(self, entity_id, *args, **kwargs):
+        entity_id = self.repository.add(entity_id, *args, **kwargs)
+        logger.info(f'{type(self).__name__} with {entity_id} successfully created!')
+        # return entity_id
 
 
 # The Started handler
 class User(BaseHandler):
 
-    def handle(self, user_id, description):
-        if not user_id in self.repository():
-            user_id = self.new(description)
-        super().handle()
+    def handle(self, service_data: dict):
+        # Check if user exists
+        user_id = self.repository.get_id(service_data['telegram_id'])
+        if not user_id:
+            user_id = self.new(service_data['username'], service_data['telegram_id'])
 
-    def id(self, name):
-        return self.repository.get_id(name)
+        service_data['user_id'] = user_id
+        super().handle(service_data)
 
 
 # Second handler
 class Chat(BaseHandler):
     chat_id = None
 
-    def handle(self, user_id, message):
-        if not self.repository.list(user_id):
-            input('Enter>>> ')
-            self.chat_id = self.new(user_id, chat_name)
-        super().handle(self.chat_id, message)
+    # If it's the new user then user must write the first message
+    def handle(self, service_data):
+        if not self.repository.list_by_user_id(service_data['user_id']):
+            message = input('Enter >>> ')
+            chat_id = self.new(service_data['user_id'], message)
+            service_data['chat_name'] = message
+            service_data['chat_id'] = chat_id
+        else:
+            # Print all chats!
+            list_chats = self.repository.list_by_user_id(service_data['user_id'])
+            choose_chats = {}
+            for chat in list_chats:
+                name = chat['name']
+                print(name)
+                choose_chats[name] = chat['id']
+
+            # Choose the Chat!
+            while True:
+                chat = input('Enter >>> ')
+                if chat not in choose_chats:
+                    print('No such chat!')
+                else:
+                    break
+
+            service_data['chat_name'] = chat
+            service_data['chat_id'] = choose_chats[chat]
+
+        super().handle(service_data)
 
     def list(self, user_id):
         self.repository.list(user_id)
@@ -85,10 +110,18 @@ class Chat(BaseHandler):
 class Dialog(BaseHandler):
 
     # After this handler we are needs the condition to exit the loop
-    def handle(self, chat_id, message):
-        self.id = self.new(chat_id, message)
-        return self.id
-        # super().handle()
+    def handle(self, service_data):
+        last_message = self.repository.last_by_id(service_data['chat_id'])
+        print(last_message)
+
+        # The Conversing
+        while True:
+            message = input('Enter >>> ')
+            if message in ('print dialog', 'history'):
+                print(self.repository.list_by_chat_id(service_data['chat_id']))
+            else:
+                message_id = self.new(service_data['chat_id'], message)
+        super().handle(service_data)
 
 
 chatgpt = ChatGPT()
@@ -98,10 +131,12 @@ start_message = chatgpt.last_answer
 user = User(UserRepository())
 chat = Chat(ChatRepository())
 dialog = Dialog(DialogRepository())
-user.set_next(chat).set_next(dialog)
+user.set_next(chat).set_next(dialog).set_next(chat)
 
-service_data = dict(username='admin', user_description='Niki@telegram')
-user_id = user.id(service_data['username'])
+# Start here
+service_data = dict(username='Niki@telegram', telegram_id=5432, user_description='admin')
+user.handle(service_data)
+
 all_chats_data = chat.list(user_id)
 if not all_chats_data:
     answer = chatgpt.ask_question()
@@ -135,7 +170,7 @@ while True:
         message_data = dict(username='admin', user_description='Niki@telegram',
                             chat_name=message[:10], chat_id=chat_id,
                             message=message
-                        )
+                            )
         if message in ['print dialog', 'history']:
             chatgpt.list_dialogs()
         else:
