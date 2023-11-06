@@ -18,8 +18,15 @@ class TestDataBase(unittest.TestCase):
         self.assertIsInstance(users, list)
         for user in users:
             print(user)
-            print(user.id, user.name)
+            print(user['id'], user['name'])
+        # It's a thery useful of method
         print(self.database.cursor.description)
+
+    def test_negative_get_user_id(self):
+        self.test_create_database_and_users()
+        telegram_id = 1123
+        result = self.database.select('SELECT * FROM users WHERE telegram_id = ?;', telegram_id)
+        self.assertLessEqual(len(result), 1)
 
 
 class TestUserRepository(unittest.TestCase):
@@ -33,8 +40,8 @@ class TestUserRepository(unittest.TestCase):
         # self.repository = DialogRepository(self.database)
 
     def test_add(self):
-        admin_id = self.repository.add('admin', 'description of admin')
-        user_id = self.repository.add('user_1', 'description of user_1')
+        admin_id = self.repository.add('admin', 5432, 'description of admin')
+        user_id = self.repository.add('user_1', 896, 'description of user_1')
         self.assertEqual(admin_id, 1)
         self.assertEqual(user_id, 2)
         print(admin_id, user_id)
@@ -51,7 +58,7 @@ class TestUserRepository(unittest.TestCase):
         self.assertIsNotNone(users)
         self.assertIsInstance(users, list)
         for user in users:
-            print(f'{user.id=} {user.name=} {user.description=}')
+            print(f'{user["id"]=} {user["name"]=} {user["telegram_id"]=}, {user["description"]=}')
 
     def test_list_id(self):
         self.test_add()
@@ -61,11 +68,30 @@ class TestUserRepository(unittest.TestCase):
         for user_id in users_id:
             print(f"{user_id['id']=}")
 
+    def test_negative_id(self):
+        self.test_add()
+        user_id = 523
+        result = user_id in self.repository('telegram_id')
+        self.assertFalse(result)
+
+    def test_negative_get_id(self):
+        self.test_add()
+        telegram_id = 123
+        result = self.database.select('SELECT * FROM users WHERE telegram_id = ?;', telegram_id)
+        print(result)
+        try:
+            result = self.repository.get_id(telegram_id)
+        except IndexError:
+            self.assertLessEqual(len(result), 1)
+
     def test_contain_id(self):
         self.test_add()
         admin_id = 1
-        result = admin_id in self.repository()
+        result = admin_id in self.repository('id')
         self.assertTrue(result)
+        user_id = 8
+        result = 6 in self.repository('id')
+        self.assertFalse(result)
 
 
 class TestChatRepository(unittest.TestCase):
@@ -95,7 +121,7 @@ class TestChatRepository(unittest.TestCase):
     def test_list(self):
         self.test_add()
         user_id = 1
-        chats = self.repository.list(user_id)
+        chats = self.repository.list_by_user_id(user_id)
         self.assertIsNotNone(chats)
         self.assertIsInstance(chats, list)
         for chat in chats:
@@ -108,12 +134,12 @@ class TestChatRepository(unittest.TestCase):
         self.assertIsNotNone(users_id)
         self.assertIsInstance(users_id, list)
         for user_id in users_id:
-            print(f'{user_id.id=}')
+            print(f'{user_id["id"]=}')
 
     def test_contain_id(self):
         self.test_add()
         admin_id = 1
-        result = admin_id in self.repository()
+        result = admin_id in self.repository('id')
         self.assertTrue(result)
 
 
@@ -141,7 +167,7 @@ class TestDialogRepository(unittest.TestCase):
 
     def test_list(self):
         self.test_add()
-        messages = self.repository.list(1)
+        messages = self.repository.list_by_chat_id(1)
         self.assertIsNotNone(messages)
         self.assertIsInstance(messages, list)
         for message in messages:
@@ -159,5 +185,5 @@ class TestDialogRepository(unittest.TestCase):
     def test_contain_id(self):
         self.test_add()
         admin_id = 1
-        result = admin_id in self.repository()
+        result = admin_id in self.repository('id')
         self.assertTrue(result)

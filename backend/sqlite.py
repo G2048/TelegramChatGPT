@@ -4,12 +4,12 @@ from collections import namedtuple
 """
 ### Layout of data storage:
     1. List of Contacts -> user_id (uniq, primary key)
-    ╭───┬─────────┬─────────────────╮
-    │ # │ user_id │    user_name    │
-    ├───┼─────────┼─────────────────┤
-    │ 0 │      11 │ Niki@telegram   │
-    │ 1 │      42 │ FixBot@telegram │
-    ╰───┴─────────┴─────────────────╯
+    ╭───┬────┬─────────────────┬─────────────┬───────────────────────────────╮
+    │ # │ id │      name       │ telegram_id │          description          │
+    ├───┼────┼─────────────────┼─────────────┼───────────────────────────────┤
+    │ 0 │  1 │ Niki@telegram   │         153 │ Some description of Niki...   │
+    │ 1 │  2 │ FixBot@telegram │         983 │ Some description of FixBot... │
+    ╰───┴────┴─────────────────┴─────────────┴───────────────────────────────╯
     INSERT, DELETE
 
     2. List of Chats: user_id(forein key) -> chat_id (uniq, primary key) (Preview is the first message)
@@ -55,6 +55,7 @@ class SqliteDatabase:
         self.sql_create_users_table = """CREATE TABLE IF NOT EXISTS users
                                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
                                      name TEXT,
+                                     telegram_id INTEGER,
                                      description TEXT,
                                      FOREIGN KEY (id) REFERENCES chats(user_id)
                                      );
