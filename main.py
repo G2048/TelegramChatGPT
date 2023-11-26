@@ -126,44 +126,53 @@ class Dialog(BaseHandler):
 
 chatgpt = ChatGPT()
 chatgpt.new_dialog(Roles.ChatGPT)
-start_message = chatgpt.last_answer
+# start_message = chatgpt.last_answer
 
-user = User(UserRepository())
-chat = Chat(ChatRepository())
-dialog = Dialog(DialogRepository())
-user.set_next(chat).set_next(dialog).set_next(chat)
+database = 'database.db'
+user = UserRepository(database)
+chat = ChatRepository(database)
+dialog = DialogRepository(database)
+# user.set_next(chat).set_next(dialog).set_next(chat)
 
 # Start here
-service_data = dict(username='Niki@telegram', telegram_id=5432, user_description='admin')
-user.handle(service_data)
+user_data = dict(username='@Nikitelegram', firstname='IX', telegram_id=5432, user_description='admin')
 
-all_chats_data = chat.list(user_id)
-if not all_chats_data:
-    answer = chatgpt.ask_question()
+user_id = user.get_id(user_data['telegram_id'])
+if user_id is None:
+    user_id = user.add(**user_data)
+
+all_chats = chat.list_by_user_id(user_id)
+
+question = input('>>> ')
+answer = chatgpt.ask_question(question)
+
+# Start a new conversation for creating a new chat
+if all_chats is None:
     chat_name = answer[:20]
-    chat_id = chat.new(user_id, chat_name)
-    dialog.new(chat_id, start_message)
+    chat_id = chat.add(user_id, chat_name)
+# Else choose the chat
 else:
     # chat.handle(user_id, 'Hello!')
-    choose_chat = {}
-    for chat in all_chats_data:
-        service_data.update({chat['name']: chat['id']})
-        print(f'Current chats: {chat["name"]=}')
+    for chat_num, chat in enumerate(all_chats):
+        chat_num += 1
+        user_data.update({chat[chat_num]: chat['id']})
+        print(f'{chat_num}. Current chats: {chat["name"]=}')
 
-    chat_name = input('>>> ')
-    chat_id = choose_chat[chat_name]
-    print(dialog.repository.last_by_id(service_data['chat_id']))
+    print('Choose the chat number!')
+    chat_num = input('>>> ')
+    chat_id = user_data[chat_num]
+    last_message = dialog.last_by_id(chat_id)
+    user_data.update({'current_chat': chat_id})
+    print(last_message)
 
-service_data.update({'chat_name': chat_name, 'chat_id': chat_id})
-
+dialog.add(chat_id, answer)
 # Old protocol
 # chatgpt.message = message
 # chatgpt.ask()
 # chatgpt.answer
 
 # user.handle('user', 'user_1')
-answer = chatgpt.ask()
-dialog.new(chat_id, answer)
+
 while True:
     try:
         message = input('>>> ')
@@ -176,7 +185,7 @@ while True:
         else:
             question = message
             answer = chatgpt.ask_question(question)
-            dialog.new(service_data['chat_id'], answer)
+            dialog.add(user_data['chat_id'], answer)
             print()
             print(answer)
             print()

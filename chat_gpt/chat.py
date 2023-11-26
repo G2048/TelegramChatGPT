@@ -29,8 +29,12 @@ def test_ai():
 @dataclass(frozen=True)
 class Roles:
     """Role must started with 'You are ...' """
-    ChatGPT: str = 'You are a chatbot'
-    ASSISTANT: str = 'You are a helpful assistant.'
+    # ['system', 'assistant', 'user', 'function'] - 'messages.1.role'
+    chatgpt: str = 'You are a chatbot'
+    assistant: str = 'You are a helpful assistant.'
+    system: str = 'You are a system.'
+    user: str = 'You are a user.'
+    function: str = 'You are a function.'
 
 
 @dataclass(frozen=True)
@@ -82,6 +86,7 @@ class ChatGPT:
         self._user_message = {}
         self._answer = {}
         self.temperature = temperature
+        self.model = Models.GPT_turbo
 
     # It's the start message
     def new_dialog(self, role: Roles, model: Models = Models.GPT_turbo):
@@ -124,7 +129,7 @@ class ChatGPT:
             del self.VAULT[0]
         self.VAULT.append(message)
 
-    def __create_message(self, role, message):
+    def create_message(self, role, message):
         self.save({'role': role, 'content': message})
 
     def ask(self):

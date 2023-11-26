@@ -54,10 +54,11 @@ class SqliteDatabase:
     def __init_sql_create_database(self):
         self.sql_create_users_table = """CREATE TABLE IF NOT EXISTS users
                                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                     name TEXT,
+                                     username TEXT,
+                                     firstname TEXT,
                                      telegram_id INTEGER,
                                      description TEXT,
-                                     FOREIGN KEY (id) REFERENCES chats(user_id)
+                                     FOREIGN KEY (id) REFERENCES chats(username_id)
                                      );
                                   """
         self.sql_create_users_chats_table = """CREATE TABLE IF NOT EXISTS chats
@@ -70,6 +71,7 @@ class SqliteDatabase:
         self.sql_create_chats_messages_table = """CREATE TABLE IF NOT EXISTS messages
                                         (id INTEGER PRIMARY KEY AUTOINCREMENT,
                                          chat_id INTEGER,
+                                         role TEXT,
                                          content TEXT,
                                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                                          );
@@ -85,6 +87,7 @@ class SqliteDatabase:
         self.execute(self.sql_create_users_chats_table)
         self.execute(self.sql_create_chats_messages_table)
         self.execute(self.sql_create_index_chat_id)
+        return self
 
     def execute(self, sql, *args):
         self.cursor.execute(sql, args)

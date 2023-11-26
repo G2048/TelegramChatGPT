@@ -33,9 +33,9 @@ class Repository:
 
 class UserRepository(Repository):
 
-    def add(self, user, telegram_id, description):
-        self.database.execute('INSERT INTO users(name, telegram_id, description) VALUES(?, ?, ?);', user, telegram_id,
-                              description
+    def add(self, username, first_name, telegram_id, description):
+        self.database.execute('INSERT INTO users(username, firstname, telegram_id, description) VALUES(?, ?, ?, ?);',
+                              username, first_name, telegram_id, description
                               )
         return self.get_id(telegram_id)
 
@@ -72,7 +72,8 @@ class ChatRepository(Repository):
         return self.database.select('SELECT * FROM chats')
 
     def list_by_user_id(self, user_id):
-        return self.database.select('SELECT * FROM chats WHERE user_id = ? ORDER BY id;', user_id)
+        chats = self.database.select('SELECT * FROM chats WHERE user_id = ? ORDER BY id;', user_id)
+        return chats if chats else None
 
     def list_id(self):
         return self.database.select('SELECT id FROM chats ORDER BY id;')
@@ -80,8 +81,8 @@ class ChatRepository(Repository):
 
 class DialogRepository(Repository):
 
-    def add(self, chat_id, message):
-        self.database.execute('INSERT INTO messages(chat_id, content) VALUES (?, ?);', chat_id, message)
+    def add(self, chat_id, message, role='user'):
+        self.database.execute('INSERT INTO messages(chat_id, role, content) VALUES (?, ?, ?);', chat_id, role, message)
         return self.get_id(chat_id)
 
     def last_by_id(self, chat_id):
@@ -89,8 +90,8 @@ class DialogRepository(Repository):
         return message[0] if message else None
 
     def get_id(self, chat_id):
-        dialog_id = self.database.select('SELECT id FROM messages WHERE chat_id = ? ;', chat_id)[0]
-        return dialog_id['id'] if dialog_id else None
+        dialog_id = self.database.select('SELECT id FROM messages WHERE chat_id = ? ;', chat_id)
+        return dialog_id[0]['id'] if dialog_id else None
 
     def list(self):
         return self.database.select('SELECT * FROM messages')
