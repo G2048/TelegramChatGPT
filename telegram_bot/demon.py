@@ -16,7 +16,6 @@ class Daemon():
         self.stdout = '/dev/null'
         self.stderr = '/dev/null'
 
-
     def demonification(self):
         """Fork, magic and run the function"""
         self.create_child()
@@ -33,9 +32,9 @@ class Daemon():
 
         sys.stdout.flush()
         sys.stderr.flush()
-        si = open(self.stdin,'r')
-        so = open(self.stdout,'a+')
-        se = open(self.stderr,'a+')
+        si = open(self.stdin, 'r')
+        so = open(self.stdout, 'a+')
+        se = open(self.stderr, 'a+')
 
         os.dup2(si.fileno(), sys.stdin.fileno())
         os.dup2(so.fileno(), sys.stdout.fileno())
@@ -43,7 +42,6 @@ class Daemon():
 
         logging.debug(f'Start function {self.fn}')
         self.fn(*self.fn_args)
-
 
     def delpid(self):
         """Only remove pidfile"""
@@ -53,12 +51,9 @@ class Daemon():
             logging.error(e)
             sys.stderr.write(f'{e}\n')
 
-
-
     @staticmethod
     def handle_signal(signum, frame):
         pass
-
 
     @staticmethod
     def create_child():
@@ -73,7 +68,6 @@ class Daemon():
             sys.stderr.write(f'Error: {e.errno} {e.strerror}\n')
             sys.exit(1)
 
-
     def start(self, fn, *args):
         """You must specify a function to be called when the daemon is started"""
 
@@ -86,7 +80,6 @@ class Daemon():
         else:
             logging.debug(self.fn_args)
             self.demonification()
-
 
     def stop(self):
         """Stop the existing daemon"""
@@ -102,7 +95,6 @@ class Daemon():
             logging.warning('Pid file don\'t exist!')
             sys.stderr.write('Pid file don\'t exist!\n')
             return -1
-
 
         try:
             os.kill(pid, 15)
@@ -122,7 +114,6 @@ class Daemon():
                 sys.stderr.write(f'Send kill -9 to process {pid}\n')
 
 
-
 if __name__ == '__main__':
     RAWHELP = """Create and manipulating the Daemon process.\n
     Test running: sudo python3 daemon.py -d
@@ -134,7 +125,6 @@ if __name__ == '__main__':
     exgroup.add_argument('-d', '--daemonize', action='store_true', help='Demonize a function')
     exgroup.add_argument('-k', '--kill', action='store', const='test', nargs='?', help='Specify a process name...')
     args = parser.parse_args()
-
 
     FORMAT = '%(asctime)s::%(name)s::%(levelname)s::%(message)s'
     logging.basicConfig(level=logging.INFO, format=FORMAT, filename='testd.log')

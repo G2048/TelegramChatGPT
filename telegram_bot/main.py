@@ -1,4 +1,7 @@
-from chat_gpt.main_gpt import *
+from chat_gpt.chat import ChatGPT, Roles, ChatParser
+import logging.config
+from settings import LogConfig, TELEGRAM_TOKEN
+# import Daemon from demon
 
 from telegram import (
     Update, InlineKeyboardButton,
@@ -12,39 +15,36 @@ from telegram.ext import (
     CommandHandler,
     MessageHandler,
     ConversationHandler,
-    filters, 
-    CallbackQueryHandler
+    filters,
+    CallbackQueryHandler,
 )
-# import Daemon from demon
 
+logging.config.dictConfig(LogConfig)
+logger = logging.getLogger('')
+logger.setLevel(10)
 
-
-help_log = 'without the -l option write to telegram.log otherwise print to file'
-parser = argparse.ArgumentParser()
-parser.add_argument('-t', '--dry-run', action='store_true')
-parser.add_argument('-f', '--log', action='store', default='telegram.log', const='', nargs='?', help=help_log)
-parser.add_argument('-l', '--log-level', action='store', type=int)
-parser.add_argument('-tl', '--time-live', action='store', default=None, help='Time to live the process')
-args = parser.parse_args()
-
-
-FORMAT = '%(asctime)s::%(levelname)s::%(message)s'
-logging.basicConfig(filename=args.log, format=FORMAT, level=args.log_level)
-logger = logging.getLogger(__name__)
-
-
+# help_log = 'without the -l option write to telegram.log otherwise print to file'
+# parser = argparse.ArgumentParser()
+# parser.add_argument('-t', '--dry-run', action='store_true')
+# parser.add_argument('-f', '--log', action='store', default='telegram.log', const='', nargs='?', help=help_log)
+# parser.add_argument('-l', '--log-level', action='store', type=int)
+# parser.add_argument('-tl', '--time-live', action='store', default=None, help='Time to live the process')
+# args = parser.parse_args()
+#
+# FORMAT = '%(asctime)s::%(levelname)s::%(message)s'
+# logging.basicConfig(filename=args.log, format=FORMAT, level=args.log_level)
+# logger = logging.getLogger(__name__)
 
 END = ConversationHandler.END
-CHAT ='1'
-START ='2'
-CHOOSE ='3'
-MIDDLE ='4'
-MENU ='5'
+CHAT = '1'
+START = '2'
+CHOOSE = '3'
+MIDDLE = '4'
+MENU = '5'
 GREETINGS = """Hello! I am an AI language model designed to assist and communicate with users. I am programmed to understand and respond to natural language queries and provide helpful responses. My purpose is to make tasks easier and more efficient for users."""
 
-
 role = Roles().ASSISTANT
-ask_to_ai = CreateResponce(role)
+ask_to_ai = ChatGPT(role)
 logging.debug(ask_to_ai)
 
 
@@ -116,7 +116,6 @@ async def proxy_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = parser.message()
     ask_to_ai.safe_dialog(answer)
 
-
     logging.info(f'{update.message}')
     logging.info(f'{answer}')
     await update.message.reply_markdown_v2(answer)
@@ -124,8 +123,29 @@ async def proxy_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message.text
+    logging.debug(f'{update=}')
+    logging.debug(f'{update.to_dict()=}')
+    __import__('pprint').pprint(f'{update=}')
     await update.message.reply_text(message)
     logging.info(f'Start echo function. Message: {message}')
+
+    '''("update.to_dict()={'update_id': 764938682, 'message': {'chat': {'id': "
+         "413653663, 'type': <ChatType.PRIVATE>, 'first_name': 'lX', 'username': "
+         "'ixper13'}, 'text': 'asdfasdf', 'group_chat_created': False, 'message_id': "
+         "2313, 'delete_chat_photo': False, 'date': 1701001982, "
+         "'supergroup_chat_created': False, 'channel_chat_created': False, 'from': "
+         "{'is_bot': False, 'username': 'ixper13', 'first_name': 'lX', 'id': "
+         "413653663, 'language_code': 'ru'}}}")
+     '''
+    '''('update=Update(message=Message(channel_chat_created=False, '
+         "chat=Chat(first_name='lX', id=413653663, type=<ChatType.PRIVATE>, "
+         "username='ixper13'), date=datetime.datetime(2023, 11, 26, 12, 37, 8, "
+         'tzinfo=datetime.timezone.utc), delete_chat_photo=False, '
+         "from_user=User(first_name='lX', id=413653663, is_bot=False, "
+         "language_code='ru', username='ixper13'), group_chat_created=False, "
+         "message_id=2327, supergroup_chat_created=False, text='sadDS'), "
+         'update_id=764938703)')
+     '''
 
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -156,6 +176,7 @@ async def middle(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 COUNT = 0
+
 
 # Must need to make pagination
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -192,6 +213,7 @@ async def selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.edit_message_text(text='Get data From DataBase', reply_markup=reply_markup)
     return CHOOSE
 
+
 # Pagination...
 async def incr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global COUNT
@@ -199,11 +221,13 @@ async def incr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logging.info(f'Count is {COUNT}')
     return await selection(update, context)
 
+
 async def decr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global COUNT
     COUNT -= 1
     logging.info(f'Count is {COUNT}')
     return await selection(update, context)
+
 
 async def choose(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global COUNT
@@ -211,43 +235,46 @@ async def choose(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return END
 
 
-
 def main() -> None:
     application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     tip_handler = CommandHandler('help', tip)
     start_handler = CommandHandler('start', start_keyboard)
-    middle_handler = MessageHandler(~(filters.COMMAND | filters.Regex('^(STOP|forward)$')), middle) #conversation_keyboard)
-    menu_handler = MessageHandler(filters.Regex('^(Get the list of Dialogues|Change the Dialogue)$') & ~(filters.COMMAND | filters.Regex('^STOP$')), menu)
+    middle_handler = MessageHandler(~(filters.COMMAND | filters.Regex('^(STOP|forward)$')), middle
+                                    )  # conversation_keyboard)
+    menu_handler = MessageHandler(filters.Regex('^(Get the list of Dialogues|Change the Dialogue)$') & ~(
+            filters.COMMAND | filters.Regex('^STOP$')), menu
+                                  )
     stop_handler = CommandHandler('stop', stop)
     # forward_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), proxy_message)
-    forward_handler = MessageHandler(filters.TEXT & ~(filters.COMMAND | filters.Regex('^STOP$') | filters.Regex('^Change the Dialogue$')), echo)
+    forward_handler = MessageHandler(
+        filters.TEXT & ~(filters.COMMAND | filters.Regex('^STOP$') | filters.Regex('^Change the Dialogue$')), echo
+    )
     stop_handler = MessageHandler(filters.Regex('^STOP$'), stop)
-
 
     selection_handler = ConversationHandler(
         entry_points=[menu_handler],
-        states = {
-        CHOOSE: [
+        states={
+            CHOOSE: [
                 CallbackQueryHandler(incr, pattern='next_page'),
                 CallbackQueryHandler(decr, pattern='back_page'),
                 CallbackQueryHandler(decr, pattern='^hide$'),
-                ]
+            ]
 
         },
-        fallbacks = [CallbackQueryHandler(choose, pattern='^choose$'),],
+        fallbacks=[CallbackQueryHandler(choose, pattern='^choose$'), ],
         map_to_parent={END: MIDDLE}
     )
 
     conv_handler = ConversationHandler(
-        entry_points=[start_handler,],
-        states = {
+        entry_points=[start_handler, ],
+        states={
 
             MIDDLE: [
                 middle_handler,
             ],
 
-            CHAT: [forward_handler, middle_handler,],
+            CHAT: [forward_handler, middle_handler, ],
             MENU: [selection_handler],
         },
 
@@ -263,11 +290,8 @@ def main() -> None:
     application.run_polling()
 
 
-
-
 if __name__ == '__main__':
     main()
     # d = Daemon(testfn)
     # d.start()
     # d.kill(15)
- 
