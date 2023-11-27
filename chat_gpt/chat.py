@@ -93,6 +93,7 @@ class ChatGPT:
         # Role is start message
         self.model = model
         self.answer = role
+        self.VAULT = []
 
     def fill_messages(self, messages: list):
         self.VAULT.extend(messages)

@@ -14,6 +14,7 @@ LogConfig = {
             'class': 'logging.Formatter',
             'format': '%(asctime)s::%(levelname)s::%(filename)s::%(levelno)s::%(lineno)s::%(message)s',
             'incremental': True,
+            'encoding': 'UTF-8',
         },
     },
     'handlers': {
